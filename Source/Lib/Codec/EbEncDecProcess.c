@@ -286,7 +286,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu(
         }
 
 
-        SaoFunctionTableEO_0_90[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_0_90[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -326,7 +326,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu(
                 tmp[i] = reconSamplePtr[i + reconStride*(lcuHeight - 1)];
             }
         }
-        SaoFunctionTableEO_0_90[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_0_90[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferUpper,
@@ -382,7 +382,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu(
             }
         }
 
-        SaoFunctionTableEO_135_45[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 3][(lcuHeight == MAX_LCU_SIZE_REMAINING) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_135_45[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 3][(lcuHeight == MAX_LCU_SIZE_REMAINING) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -448,7 +448,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu(
             }
         }
 
-        SaoFunctionTableEO_135_45[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 3][(lcuHeight == MAX_LCU_SIZE_REMAINING) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_135_45[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 3][(lcuHeight == MAX_LCU_SIZE_REMAINING) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -483,7 +483,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu(
 
     case 5: // BO
 
-        SaoFunctionTableBo[(ASM_TYPES & PREAVX2_MASK) && 1][((lcuWidth & 15) == 0 && (lcuHeight != MAX_LCU_SIZE_REMAINING))](
+        SaoFunctionTableBo[!!(ASM_TYPES & PREAVX2_MASK)][((lcuWidth & 15) == 0 && (lcuHeight != MAX_LCU_SIZE_REMAINING))](
             reconSamplePtr,
             reconStride,
             saoPtr->saoBandPosition[videoComponent],
@@ -813,7 +813,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu16bit(
         }
 
 
-        SaoFunctionTableEO_0_90_16bit[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_0_90_16bit[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -854,7 +854,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu16bit(
             }
         }
 
-        SaoFunctionTableEO_0_90_16bit[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
+        SaoFunctionTableEO_0_90_16bit[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 1][((lcuHeight & 15) == 0) && ((lcuWidth & 15) == 0) && (lcuWidth >= 32)](
             reconSamplePtr,
             reconStride,
             temporalBufferUpper,
@@ -910,7 +910,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu16bit(
             }
         }
 
-        SaoFunctionTableEO_135_45_16bit[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 3][((lcuWidth & 15) == 0) && (lcuWidth >= 32) && ((lcuHeight & 7) == 0) && (lcuHeight >= 8)](
+        SaoFunctionTableEO_135_45_16bit[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 3][((lcuWidth & 15) == 0) && (lcuWidth >= 32) && ((lcuHeight & 7) == 0) && (lcuHeight >= 8)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -976,7 +976,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu16bit(
             }
         }
 
-        SaoFunctionTableEO_135_45_16bit[(ASM_TYPES & PREAVX2_MASK) && 1][(saoPtr->saoTypeIndex[isChroma]) - 3][((lcuWidth & 15) == 0) && (lcuWidth >= 32) && ((lcuHeight & 7) == 0) && (lcuHeight >= 8)](
+        SaoFunctionTableEO_135_45_16bit[!!(ASM_TYPES & PREAVX2_MASK)][(saoPtr->saoTypeIndex[isChroma]) - 3][((lcuWidth & 15) == 0) && (lcuWidth >= 32) && ((lcuHeight & 7) == 0) && (lcuHeight >= 8)](
             reconSamplePtr,
             reconStride,
             temporalBufferLeft,
@@ -1011,7 +1011,7 @@ static EB_ERRORTYPE ApplySaoOffsetsLcu16bit(
 
     case 5: // BO
 
-        SaoFunctionTableBo_16bit[(ASM_TYPES & PREAVX2_MASK) && 1][((lcuWidth & 15) == 0)](
+        SaoFunctionTableBo_16bit[!!(ASM_TYPES & PREAVX2_MASK)][((lcuWidth & 15) == 0)](
             reconSamplePtr,
             reconStride,
             saoPtr->saoBandPosition[videoComponent],
@@ -2660,7 +2660,7 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 		}
 	}
     else {
-        contextPtr->mdContext->intraMdOpenLoopFlag = pictureControlSetPtr->temporalLayerIndex == 0 ? EB_FALSE : EB_TRUE;
+    		contextPtr->mdContext->intraMdOpenLoopFlag = pictureControlSetPtr->temporalLayerIndex == 0 ? EB_FALSE : EB_TRUE;
     }
 
     // Derive INTRA Injection Method
@@ -2741,14 +2741,14 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 			contextPtr->mdContext->chromaLevel = 0;
 		}
 	}
-  else {
+    else {
 		if (pictureControlSetPtr->sliceType == EB_I_PICTURE) {
 			contextPtr->mdContext->chromaLevel = 1;
 		}
 		else if (pictureControlSetPtr->temporalLayerIndex == 0) {
 			contextPtr->mdContext->chromaLevel = 0;
 		}
-    else if (pictureControlSetPtr->ParentPcsPtr->isUsedAsReferenceFlag) {
+        else if (pictureControlSetPtr->ParentPcsPtr->isUsedAsReferenceFlag) {
 			if (contextPtr->mdContext->intraMdOpenLoopFlag) {
 				contextPtr->mdContext->chromaLevel = 4;
 			}
@@ -2759,17 +2759,17 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 		else {
 			contextPtr->mdContext->chromaLevel = 1;
 		}
-  }
+    }
 
     // Set Coeff Cabac Update Flag
-  if (pictureControlSetPtr->encMode <= ENC_MODE_9) {
+    if (pictureControlSetPtr->encMode <= ENC_MODE_9) {
 		contextPtr->mdContext->coeffCabacUpdate = ((pictureControlSetPtr->ParentPcsPtr->depthMode == PICT_FULL85_DEPTH_MODE || pictureControlSetPtr->ParentPcsPtr->depthMode == PICT_FULL84_DEPTH_MODE || pictureControlSetPtr->ParentPcsPtr->depthMode == PICT_OPEN_LOOP_DEPTH_MODE) && contextPtr->mdContext->chromaLevel == 0) ?
 			EB_TRUE :
 			EB_FALSE;
 	}
-  else {
-    contextPtr->mdContext->coeffCabacUpdate = EB_FALSE;
-  }
+    else {
+        contextPtr->mdContext->coeffCabacUpdate = EB_FALSE;
+    }
   
     // Set INTRA8x8 Restriction @ P/B Slices
 	if (pictureControlSetPtr->encMode <= ENC_MODE_3) {
@@ -3125,7 +3125,7 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 		}
     }
     else {
-		  contextPtr->mdContext->nflLevelMd = 6;
+		contextPtr->mdContext->nflLevelMd = 6;
     }
 
     // NFL Level Pillar/8x8 Refinement         Settings
@@ -3875,6 +3875,13 @@ void* EncDecKernel(void *inputPtr)
                 pictureControlSetPtr,
                 contextPtr);
         }
+
+#if 1//TILES  //NEED these  to test stream complaince
+       // contextPtr->pmMethod = 0;
+        contextPtr->mdContext->rdoqPmCoreMethod = EB_NO_RDOQ;  //RDOQ   make DLF cause MD5 mismatch when encDec segments+QP mod are ON.. 
+        contextPtr->allowEncDecMismatch =  EB_FALSE;
+
+#endif
 
         // Derive Interpoldation Method @ Fast-Loop 
         contextPtr->mdContext->interpolationMethod = (pictureControlSetPtr->ParentPcsPtr->useSubpelFlag == EB_FALSE) ?

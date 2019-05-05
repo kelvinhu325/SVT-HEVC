@@ -270,24 +270,37 @@ extern void GenerateIntraLumaReferenceSamplesMd(
 	ModeDecisionContext_t      *contextPtr,
 	EbPictureBufferDesc_t      *inputPicturePtr) {
 
+
+#if TILES
+    EB_BOOL pictureLeftBoundary = (contextPtr->lcuPtr->tileLeftEdgeFlag == EB_TRUE && ((contextPtr->cuOriginX & (contextPtr->lcuPtr->size - 1)) == 0)) ? EB_TRUE : EB_FALSE;
+    EB_BOOL pictureTopBoundary = (contextPtr->lcuPtr->tileTopEdgeFlag == EB_TRUE && ((contextPtr->cuOriginY & (contextPtr->lcuPtr->size - 1)) == 0)) ? EB_TRUE : EB_FALSE;
+    EB_BOOL pictureRightBoundary = (contextPtr->lcuPtr->tileRightEdgeFlag == EB_TRUE && (((contextPtr->cuOriginX + contextPtr->cuStats->size) & (contextPtr->lcuPtr->size - 1)) == 0)) ? EB_TRUE : EB_FALSE;
+#endif
+
 	if (contextPtr->intraMdOpenLoopFlag == EB_FALSE) {
 
-		GenerateLumaIntraReferenceSamplesEncodePass(
-			EB_FALSE,
-			EB_TRUE,
-			contextPtr->cuOriginX,
-			contextPtr->cuOriginY,
+        GenerateLumaIntraReferenceSamplesEncodePass(
+            EB_FALSE,
+            EB_TRUE,
+            contextPtr->cuOriginX,
+            contextPtr->cuOriginY,
             contextPtr->cuStats->size,
             MAX_LCU_SIZE,
             contextPtr->cuStats->depth,
-			contextPtr->modeTypeNeighborArray,
-			contextPtr->lumaReconNeighborArray,
+            contextPtr->modeTypeNeighborArray,
+            contextPtr->lumaReconNeighborArray,
             (NeighborArrayUnit_t *) EB_NULL,
             (NeighborArrayUnit_t *) EB_NULL,
-			contextPtr->intraRefPtr,
+            contextPtr->intraRefPtr,
+#if TILES
+            pictureLeftBoundary,
+            pictureTopBoundary,
+            pictureRightBoundary);
+#else
 			EB_FALSE,
 			EB_FALSE,
 			EB_FALSE);
+#endif
 
 		contextPtr->lumaIntraRefSamplesGenDone = EB_TRUE;
 
@@ -1379,7 +1392,7 @@ void PerformInverseTransformRecon(
                         EB_FALSE,
                         tuSize < 32 ? PF_OFF : contextPtr->pfMdMode);
 
-                    AdditionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][tuSize >> 3](
+                    AdditionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][tuSize >> 3](
                         &(candidateBuffer->predictionPtr->bufferY[tuOriginIndex]),
                         64,
                         &(((EB_S16*)(contextPtr->transQuantBuffersPtr->tuTransCoeff2Nx2NPtr->bufferY))[tuOriginIndex]),
@@ -2036,7 +2049,7 @@ void ProductPerformFastLoop(
 					lumaFastDistortion = candidatePtr->meDistortion;
 				else
 					// Y
-					lumaFastDistortion += (NxMSadKernel_funcPtrArray[(ASM_TYPES & AVX2_MASK) && 1][cuSize >> 3] ( 
+					lumaFastDistortion += (NxMSadKernel_funcPtrArray[!!(ASM_TYPES & AVX2_MASK)][cuSize >> 3] ( 
 						inputBufferY,
 						inputStrideY,
 						predBufferY,
@@ -2050,7 +2063,7 @@ void ProductPerformFastLoop(
                     EB_U8 * const inputBufferCb = inputPicturePtr->bufferCb + inputCbOriginIndex;
                     EB_U8 *  const predBufferCb = candidateBuffer->predictionPtr->bufferCb + cuChromaOriginIndex;
 
-					chromaFastDistortion += NxMSadKernel_funcPtrArray[(ASM_TYPES & AVX2_MASK) && 1][cuSize >> 4] ( 
+					chromaFastDistortion += NxMSadKernel_funcPtrArray[!!(ASM_TYPES & AVX2_MASK)][cuSize >> 4] ( 
 						inputBufferCb,
 						inputPicturePtr->strideCb,
 						predBufferCb,
@@ -2062,7 +2075,7 @@ void ProductPerformFastLoop(
                     EB_U8 * const inputBufferCr = inputPicturePtr->bufferCr + inputCrOriginIndex;
                     EB_U8 * const predBufferCr = candidateBuffer->predictionPtr->bufferCr + cuChromaOriginIndex;
 
-                    chromaFastDistortion += NxMSadKernel_funcPtrArray[(ASM_TYPES & AVX2_MASK) && 1][cuSize >> 4] (
+                    chromaFastDistortion += NxMSadKernel_funcPtrArray[!!(ASM_TYPES & AVX2_MASK)][cuSize >> 4] (
                         inputBufferCr,
                         inputPicturePtr->strideCb ,
                         predBufferCr,
@@ -3251,7 +3264,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                         EB_TRUE,
                         EB_FALSE);
 
-                    AdditionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][candidateBuffer->candidatePtr->transformSize >> 3](
+                    AdditionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][candidateBuffer->candidatePtr->transformSize >> 3](
                         &(candidateBuffer->predictionPtr->bufferY[puOriginIndex]),
                         candidateBuffer->predictionPtr->strideY,
                         &(((EB_S16*)(contextPtr->transQuantBuffersPtr->tuTransCoeff2Nx2NPtr->bufferY))[puOriginIndex]),
@@ -3277,7 +3290,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                         PICTURE_BUFFER_DESC_Y_FLAG);
                 }
 
-                yFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][Log2f(MIN_PU_SIZE) - 2](
+                yFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][Log2f(MIN_PU_SIZE) - 2](
                     &(inputPicturePtr->bufferY[inputOriginIndex]),
                     inputPicturePtr->strideY,
                     &(candidateBuffer->reconPtr->bufferY[puOriginIndex]),
@@ -3301,7 +3314,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                             EB_FALSE, // DCT
                             EB_FALSE);
 
-                        AdditionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][candidateBuffer->candidatePtr->transformSize >> 3](
+                        AdditionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][candidateBuffer->candidatePtr->transformSize >> 3](
                             &(candidateBuffer->predictionPtr->bufferCb[puChromaOriginIndex]),
                             candidateBuffer->predictionPtr->strideCb,
                             &(((EB_S16*)(contextPtr->transQuantBuffersPtr->tuTransCoeff2Nx2NPtr->bufferCb))[puChromaOriginIndex]),
@@ -3327,7 +3340,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                             PICTURE_BUFFER_DESC_Cb_FLAG);
                     }
 
-                    cbFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][Log2f(MIN_PU_SIZE) - 2](
+                    cbFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][Log2f(MIN_PU_SIZE) - 2](
                         &(inputPicturePtr->bufferCb[inputChromaOriginIndex]),
                         inputPicturePtr->strideCb,
                         &(candidateBuffer->reconPtr->bufferCb[puChromaOriginIndex]),
@@ -3349,7 +3362,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                             EB_FALSE, // DCT
                             EB_FALSE);
 
-                        AdditionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][candidateBuffer->candidatePtr->transformSize >> 3](
+                        AdditionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][candidateBuffer->candidatePtr->transformSize >> 3](
                             &(candidateBuffer->predictionPtr->bufferCr[puChromaOriginIndex]),
                             candidateBuffer->predictionPtr->strideCr,
                             &(((EB_S16*)(contextPtr->transQuantBuffersPtr->tuTransCoeff2Nx2NPtr->bufferCr))[puChromaOriginIndex]),
@@ -3375,7 +3388,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                             PICTURE_BUFFER_DESC_Cr_FLAG);
                     }
 
-                    crFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][Log2f(MIN_PU_SIZE) - 2](
+                    crFullDistortion[0] = SpatialFullDistortionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][Log2f(MIN_PU_SIZE) - 2](
                         &(inputPicturePtr->bufferCr[inputChromaOriginIndex]),
                         inputPicturePtr->strideCr,
                         &(candidateBuffer->reconPtr->bufferCr[puChromaOriginIndex]),
@@ -3452,7 +3465,7 @@ EB_EXTERN EB_ERRORTYPE PerformIntra4x4Search(
                     BIT_INCREMENT_8BIT,
                     EB_TRUE, // DST
                     EB_FALSE);
-                AdditionKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][candidateBuffer->candidatePtr->transformSize >> 3](
+                AdditionKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][candidateBuffer->candidatePtr->transformSize >> 3](
                     &(candidateBuffer->predictionPtr->bufferY[puOriginIndex]),
                     candidateBuffer->predictionPtr->strideY,
                     &(((EB_S16*)(contextPtr->transQuantBuffersPtr->tuTransCoeff2Nx2NPtr->bufferY))[puOriginIndex]),
@@ -4113,7 +4126,7 @@ void UpdateMdReconBuffer(
 	LargestCodingUnit_t				*lcuPtr)
 {
 	if ((contextPtr->cuStats->size >> 3) < 9) {
-		PicCopyKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][contextPtr->cuStats->size >> 3](
+		PicCopyKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][contextPtr->cuStats->size >> 3](
 			&(reconSrcPtr->bufferY[contextPtr->cuStats->originX + contextPtr->cuStats->originY * reconSrcPtr->strideY]),
 			reconSrcPtr->strideY,
 			&(reconDstPtr->bufferY[contextPtr->cuStats->originX + contextPtr->cuStats->originY * reconDstPtr->strideY]),
@@ -4126,7 +4139,7 @@ void UpdateMdReconBuffer(
 			EB_U16  chromaOriginX = contextPtr->cuStats->originX >> 1;
 			EB_U16  chromaOriginY = contextPtr->cuStats->originY >> 1;
 
-			PicCopyKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][chromaSize >> 3](
+			PicCopyKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][chromaSize >> 3](
 				&(reconSrcPtr->bufferCb[chromaOriginX + chromaOriginY * reconSrcPtr->strideCb]),
 				reconSrcPtr->strideCb,
 				&(reconDstPtr->bufferCb[chromaOriginX + chromaOriginY * reconDstPtr->strideCb]),
@@ -4134,7 +4147,7 @@ void UpdateMdReconBuffer(
 				chromaSize,
 				chromaSize);
 
-			PicCopyKernel_funcPtrArray[(ASM_TYPES & PREAVX2_MASK) && 1][chromaSize >> 3](
+			PicCopyKernel_funcPtrArray[!!(ASM_TYPES & PREAVX2_MASK)][chromaSize >> 3](
 				&(reconSrcPtr->bufferCr[chromaOriginX + chromaOriginY * reconSrcPtr->strideCr]),
 				reconSrcPtr->strideCr,
 				&(reconDstPtr->bufferCr[chromaOriginX + chromaOriginY * reconDstPtr->strideCr]),

@@ -1252,10 +1252,15 @@ void EncodeQuantizedCoefficients_generic(
                  numNonZeroCoeffs = (componentType == COMPONENT_CHROMA_CB2) ? tuPtr->nzCoefCount2[0] :
                                     (componentType == COMPONENT_CHROMA_CR2) ? tuPtr->nzCoefCount2[1] : numNonZeroCoeffs;
 
+    EB_BOOL secondChroma = componentType == COMPONENT_CHROMA_CB2 || componentType == COMPONENT_CHROMA_CR2;
     // zerout the buffer to support N2_SHAPE & N4_SHAPE
-    EB_U32  transCoeffShape = (componentType == COMPONENT_LUMA) ? tuPtr->transCoeffShapeLuma : tuPtr->transCoeffShapeChroma ;
+    EB_U32  transCoeffShape = ((componentType == COMPONENT_LUMA) ? tuPtr->transCoeffShapeLuma    :
+                                                    secondChroma ? tuPtr->transCoeffShapeChroma2 : tuPtr->transCoeffShapeChroma);
+    EB_U32  isOnlyDc = (componentType == COMPONENT_LUMA) ? tuPtr->isOnlyDc[0] :
+                                            secondChroma ? tuPtr->isOnlyDc2[(componentType == COMPONENT_CHROMA_CB2) ? 0 : 1] :
+                                                           tuPtr->isOnlyDc[(componentType == COMPONENT_CHROMA_CB) ? 1 : 2];
 
-    if (transCoeffShape && tuPtr->isOnlyDc[(componentType == COMPONENT_LUMA) ? 0 : (componentType == COMPONENT_CHROMA_CB) ? 1 : 2] == EB_FALSE) {
+    if (transCoeffShape && isOnlyDc == EB_FALSE) {
         PicZeroOutCoef_funcPtrArray[(EB_ASM_C & PREAVX2_MASK) && 1][(size >> 1) >> 3](
             coeffBufferPtr,
             coeffStride,
@@ -1788,6 +1793,7 @@ void EncodeQuantizedCoefficients_SSE2(
 	EB_S32 index, index2;
 	EB_U32 contextSet;
 	EB_S32 numCoeffWithCodedGt1Flag; // Number of coefficients for which >1 flag is coded
+    EB_U32  transCoeffShapeChroma = (componentType == COMPONENT_CHROMA_CB2 || componentType == COMPONENT_CHROMA_CR2) ? tuPtr->transCoeffShapeChroma2 : tuPtr->transCoeffShapeChroma;
 
 
 	// DC-only fast track
@@ -1894,7 +1900,7 @@ void EncodeQuantizedCoefficients_SSE2(
         if(isChroma==EB_FALSE){        
             isCGin  =  ((EB_U32)coeffGroupPositionY < (size >>(tuPtr->transCoeffShapeLuma+2))) && ((EB_U32)coeffGroupPositionX < (size >>(tuPtr->transCoeffShapeLuma+2)));
         }else{
-            isCGin  =  ((EB_U32)coeffGroupPositionY < (size >>(tuPtr->transCoeffShapeChroma+2))) && ((EB_U32)coeffGroupPositionX < (size >>(tuPtr->transCoeffShapeChroma+2)));
+            isCGin  =  ((EB_U32)coeffGroupPositionY < (size >>(transCoeffShapeChroma+2))) && ((EB_U32)coeffGroupPositionX < (size >>(transCoeffShapeChroma+2)));
         }
  
         if(isCGin == EB_FALSE){
@@ -4088,7 +4094,7 @@ static EB_ERRORTYPE EncodeCoeff(
 	coeffBuffer = (EB_S16*)&coeffPtr->bufferY[coeffLocation * sizeof(EB_S16)];
 
 	if (tuPtr->lumaCbf) {
-		EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+		EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 			cabacEncodeCtxPtr,
 			tuSize,
 			(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4110,7 +4116,7 @@ static EB_ERRORTYPE EncodeCoeff(
 
 	if (tuSize > 4){
 		if (tuPtr->cbCbf) {
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4125,7 +4131,7 @@ static EB_ERRORTYPE EncodeCoeff(
         if (cabacEncodeCtxPtr->colorFormat == EB_YUV422 && tuPtr->cbCbf2) {
             coeffLocation = (tuOriginX >> 1) + ((tuOriginY+tuChromaSize) * coeffPtr->strideCb);
 	        coeffBuffer = (EB_S16*)&coeffPtr->bufferCb[coeffLocation * sizeof(EB_S16)];
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4139,7 +4145,7 @@ static EB_ERRORTYPE EncodeCoeff(
 	} else if (tuPtr->tuIndex - ((tuPtr->tuIndex >> 2) << 2) == 0) {
         // Never be here
 		if (tuPtr->cbCbf) {
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4159,7 +4165,7 @@ static EB_ERRORTYPE EncodeCoeff(
 
 	if (tuSize > 4){
 		if (tuPtr->crCbf) {
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4174,7 +4180,7 @@ static EB_ERRORTYPE EncodeCoeff(
         if (cabacEncodeCtxPtr->colorFormat == EB_YUV422 && tuPtr->crCbf2) {
             coeffLocation = (tuOriginX >> 1) + ((tuOriginY+tuChromaSize) * coeffPtr->strideCr);
 	        coeffBuffer = (EB_S16*)&coeffPtr->bufferCr[coeffLocation * sizeof(EB_S16)];
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4189,7 +4195,7 @@ static EB_ERRORTYPE EncodeCoeff(
 	else if (tuPtr->tuIndex - ((tuPtr->tuIndex >> 2) << 2) == 0) {
 
 		if (tuPtr->crCbf) {
-			EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+			EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 				cabacEncodeCtxPtr,
 				tuChromaSize,
 				(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -4935,11 +4941,99 @@ static void CodeProfileTier(
 		bitstreamPtr,
 		scsPtr->generalFrameOnlyConstraintFlag);
 
-	// "XXX_reserved_zero_44bits[0..15]"
-	WriteCodeCavlc(
-		bitstreamPtr,
-		0,
-		16);
+    if(scsPtr->profileIdc < 4)
+    {
+	    // "XXX_reserved_zero_44bits[0..15]"
+	    WriteCodeCavlc(
+	        bitstreamPtr,
+	        0,
+	        16);
+    } else
+    {
+        // "general_max_12bit_constraint_flag"
+        WriteFlagCavlc(
+           bitstreamPtr,
+           1);
+
+        // "general_max_10bit_constraint_flag"
+        if(scsPtr->encoderBitDepth <= EB_10BIT || scsPtr->staticConfig.constrainedIntra == EB_TRUE)
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               1);
+        } else
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               0);
+        }
+
+        // "general_max_8bit_constraint_flag"
+        //if(scsPtr->encoderBitDepth == EB_8BIT)
+        if(scsPtr->encoderBitDepth == EB_8BIT && (scsPtr->chromaFormatIdc == EB_YUV444 || scsPtr->staticConfig.constrainedIntra == EB_TRUE))
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               1);
+        } else
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               0);
+        }
+
+        // "general_max_422chroma_constraint_flag"
+        if(scsPtr->chromaFormatIdc == EB_YUV422 || (scsPtr->chromaFormatIdc == EB_YUV420 && scsPtr->staticConfig.constrainedIntra == EB_TRUE))
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               1);
+        } else
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               0);
+        }
+
+        // "general_max_420chroma_constraint_flag"
+        if(scsPtr->chromaFormatIdc == EB_YUV420)
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               1);
+        } else
+        {
+            WriteFlagCavlc(
+               bitstreamPtr,
+               0);
+        }
+
+        // "general_max_monochrome_constraint_flag"
+        WriteFlagCavlc(
+           bitstreamPtr,
+           0);
+
+        // "general_intra_constraint_flag"
+        WriteFlagCavlc(
+           bitstreamPtr,
+           (scsPtr->staticConfig.constrainedIntra == EB_TRUE));
+
+        // "general_one_picture_only_constraint_flag"
+        WriteFlagCavlc(
+           bitstreamPtr,
+           0);
+
+        // "general_lower_bit_rate_constraint_flag"
+        WriteFlagCavlc(
+           bitstreamPtr,
+           1);
+
+        // "XXX_reserved_zero_44bits[9..15]"
+        WriteCodeCavlc(
+           bitstreamPtr,
+           0,
+           7);
+    }
 
 	// "XXX_reserved_zero_44bits[16..31]"
 	WriteCodeCavlc(
@@ -6071,7 +6165,9 @@ static void CodePPS(
 	//SequenceControlSet_t    *scsPtr = (SequenceControlSet_t*)pcsPtr->sequenceControlSetWrapperPtr->objectPtr;
 
 	EB_BOOL disableDlfFlag = scsPtr->staticConfig.disableDlfFlag;
-
+#if TILES
+    EB_BOOL tileMode = (scsPtr->tileColumnCount > 1 || scsPtr->tileRowCount > 1) ? EB_TRUE : EB_FALSE;
+#endif
 	// uiFirstByte
 	//codeNALUnitHeader( NAL_UNIT_PPS, NAL_REF_IDC_PRIORITY_HIGHEST );
 	CodeNALUnitHeader(
@@ -6191,14 +6287,67 @@ static void CodePPS(
 		bitstreamPtr,
 		0);
 	// "tiles_enabled_flag"
-	WriteFlagCavlc(
-		bitstreamPtr,
+    WriteFlagCavlc(
+        bitstreamPtr,
+#if TILES
+        tileMode);
+#else
 		0);
+#endif
 
 	// "entropy_coding_sync_enabled_flag"
 	WriteFlagCavlc(
 		bitstreamPtr,
 		0);
+#if TILES
+    if (tileMode == EB_TRUE) {
+
+        // Tiles Number of Columns
+        WriteUvlc(
+            bitstreamPtr,
+            scsPtr->tileColumnCount - 1);
+
+        // Tiles Number of Rows
+        WriteUvlc(
+            bitstreamPtr,
+            scsPtr->tileRowCount - 1);
+
+        // Tiles Uniform Spacing Flag
+        WriteCodeCavlc(
+            bitstreamPtr,
+            scsPtr->tileUniformSpacing,
+            1);
+
+        if (scsPtr->tileUniformSpacing == 0) {
+
+            unsigned syntaxItr;
+
+            // Tile Column Width
+            for (syntaxItr = 0; syntaxItr < (scsPtr->tileColumnCount - 1); ++syntaxItr) {
+                // "column_width_minus1"
+                WriteUvlc(
+                    bitstreamPtr,
+                    scsPtr->tileColumnWidthArray[syntaxItr] - 1);
+            }
+
+            // Tile Row Height
+            for (syntaxItr = 0; syntaxItr < (scsPtr->tileRowCount - 1); ++syntaxItr) {
+                // "row_height_minus1"
+                WriteUvlc(
+                    bitstreamPtr,
+                    scsPtr->tileRowHeightArray[syntaxItr] - 1);
+            }
+
+        }
+
+        // Loop filter across tiles
+        //if(scsPtr->staticConfig.tileColumnCount != 1 || scsPtr->staticConfig.tileRowCount > 1) {
+        WriteFlagCavlc(
+            bitstreamPtr,
+            1);
+        //}
+    }
+#endif
 
 	// "loop_filter_across_slices_enabled_flag"
 	WriteFlagCavlc(
@@ -6264,8 +6413,6 @@ static void CodePPS(
 	return;
 }
 
-#define DECODED_PICTURE_HASH 132
-
 static void CodeSliceHeader(
 	EB_U32         firstLcuAddr,
 	EB_U32         pictureQp,
@@ -6282,7 +6429,9 @@ static void CodeSliceHeader(
 	EB_BOOL disableDlfFlag = sequenceControlSetPtr->staticConfig.disableDlfFlag;
 
 	EB_U32 sliceType = (pcsPtr->ParentPcsPtr->idrFlag == EB_TRUE) ? EB_I_PICTURE : pcsPtr->sliceType;
-
+#if TILES
+    EB_BOOL tileMode = (sequenceControlSetPtr->tileColumnCount > 1 || sequenceControlSetPtr->tileRowCount > 1) ? EB_TRUE : EB_FALSE;
+#endif
 	EB_U32 refPicsTotalCount =
 		pcsPtr->ParentPcsPtr->predStructPtr->predStructEntryPtrArray[pcsPtr->ParentPcsPtr->predStructIndex]->negativeRefPicsTotalCount +
 		pcsPtr->ParentPcsPtr->predStructPtr->predStructEntryPtrArray[pcsPtr->ParentPcsPtr->predStructIndex]->positiveRefPicsTotalCount;
@@ -6559,6 +6708,20 @@ static void CodeSliceHeader(
 			bitstreamPtr,
 			1);
 	}
+
+#if TILES
+    if (tileMode) {
+        unsigned tileColumnNumMinus1 = sequenceControlSetPtr->tileColumnCount - 1;
+        unsigned tileRowNumMinus1 = sequenceControlSetPtr->tileRowCount - 1;
+
+        if (tileColumnNumMinus1 > 0 || tileRowNumMinus1 > 0) {
+            // "num_entry_point_offsets"
+            WriteUvlc(
+                bitstreamPtr,
+                0);
+        }
+    }
+#endif
 	// Byte Alignment
 
 	//pcBitstreamOut->write( 1, 1 );
@@ -6572,7 +6735,31 @@ static void CodeSliceHeader(
 		bitstreamPtr);
 
 }
+#if TILES
+EB_ERRORTYPE EncodeTileFinish(
+    EntropyCoder_t        *entropyCoderPtr)
+{
+    EB_ERRORTYPE return_error = EB_ErrorNone;
+    CabacEncodeContext_t *cabacEncodeCtxPtr = (CabacEncodeContext_t*)entropyCoderPtr->cabacEncodeContextPtr;
 
+    // Add tile terminate bit (0x1)
+    BacEncContextTerminate(
+        &(cabacEncodeCtxPtr->bacEncContext),
+        1);
+
+    BacEncContextFinish(&(cabacEncodeCtxPtr->bacEncContext));
+
+    OutputBitstreamWrite(
+        &(cabacEncodeCtxPtr->bacEncContext.m_pcTComBitIf),
+        1,
+        1);
+
+    OutputBitstreamWriteAlignZero(
+        &(cabacEncodeCtxPtr->bacEncContext.m_pcTComBitIf));
+
+    return return_error;
+}
+#endif
 EB_ERRORTYPE EncodeLcuSaoParameters(
 	LargestCodingUnit_t   *tbPtr,
 	EntropyCoder_t        *entropyCoderPtr,
@@ -6588,7 +6775,11 @@ EB_ERRORTYPE EncodeLcuSaoParameters(
 	// This needs to be revisited when there is more than one slice per tile
 	// Code Luma SAO parameters
 	// Code Luma SAO parameters
+#if TILES
+    if (tbPtr->tileLeftEdgeFlag == EB_FALSE) {
+#else
 	if (tbPtr->pictureLeftEdgeFlag == EB_FALSE) {
+#endif
 		EncodeSaoMerge(
 			cabacEncodeCtxPtr,
 			tbPtr->saoParams.saoMergeLeftFlag);
@@ -6598,7 +6789,11 @@ EB_ERRORTYPE EncodeLcuSaoParameters(
 	}
 
 	if (tbPtr->saoParams.saoMergeLeftFlag == 0) {
+#if TILES
+        if (tbPtr->tileTopEdgeFlag == EB_FALSE) {
+#else
 		if (tbPtr->pictureTopEdgeFlag == EB_FALSE) {
+#endif
 			EncodeSaoMerge(
 				cabacEncodeCtxPtr,
 				tbPtr->saoParams.saoMergeUpFlag);
@@ -6826,7 +7021,7 @@ static EB_ERRORTYPE Intra4x4EncodeLumaCoeff(
 			MIN_PU_SIZE,
 			&countNonZeroCoeffs);
 
-		EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+		EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
 			cabacEncodeCtxPtr,
 			MIN_PU_SIZE,
 			(EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -6874,7 +7069,7 @@ static EB_ERRORTYPE Intra4x4EncodeChromaCoeff(
                     MIN_PU_SIZE,
                     &countNonZeroCoeffs);
 
-            EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+            EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
                     cabacEncodeCtxPtr,
                     MIN_PU_SIZE,
                     (EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -6902,7 +7097,7 @@ static EB_ERRORTYPE Intra4x4EncodeChromaCoeff(
                     MIN_PU_SIZE,
                     &countNonZeroCoeffs);
 
-            EncodeQuantizedCoefficientsFuncArray[(ASM_TYPES & PREAVX2_MASK) && 1](
+            EncodeQuantizedCoefficientsFuncArray[!!(ASM_TYPES & PREAVX2_MASK)](
                     cabacEncodeCtxPtr,
                     MIN_PU_SIZE,
                     (EB_MODETYPE)cuPtr->predictionModeFlag,
@@ -7583,7 +7778,7 @@ EB_ERRORTYPE TuEstimateCoeffBitsEncDec(
 
 		if (countNonZeroCoeffs[0]) {
 
-			EstimateQuantizedCoefficients[1][(ASM_TYPES & PREAVX2_MASK) && 1](
+			EstimateQuantizedCoefficients[1][!!(ASM_TYPES & PREAVX2_MASK)](
 				CabacCost,
 				cabacEncodeCtxPtr,
 				transformSize,
@@ -7607,7 +7802,7 @@ EB_ERRORTYPE TuEstimateCoeffBitsEncDec(
 
 		if (countNonZeroCoeffs[1]) {
 
-			EstimateQuantizedCoefficients[1][(ASM_TYPES & PREAVX2_MASK) && 1](
+			EstimateQuantizedCoefficients[1][!!(ASM_TYPES & PREAVX2_MASK)](
 				CabacCost,
 				cabacEncodeCtxPtr,
 				transformChromaSize,
@@ -7630,7 +7825,7 @@ EB_ERRORTYPE TuEstimateCoeffBitsEncDec(
 
 		if (countNonZeroCoeffs[2]) {
 
-			EstimateQuantizedCoefficients[1][(ASM_TYPES & PREAVX2_MASK) && 1](
+			EstimateQuantizedCoefficients[1][!!(ASM_TYPES & PREAVX2_MASK)](
 				CabacCost,
 				cabacEncodeCtxPtr,
 				transformChromaSize,
@@ -7678,7 +7873,7 @@ EB_ERRORTYPE TuEstimateCoeffBitsLuma(
 	if (yCountNonZeroCoeffs) {
 
         if(coeffCabacUpdate)
-            EstimateQuantizedCoefficientsUpdate[(ASM_TYPES & PREAVX2_MASK) && 1](
+            EstimateQuantizedCoefficientsUpdate[!!(ASM_TYPES & PREAVX2_MASK)](
                 updatedCoeffCtxModel,
                 CabacCost,
                 cabacEncodeCtxPtr,
@@ -7692,7 +7887,7 @@ EB_ERRORTYPE TuEstimateCoeffBitsLuma(
                 yCountNonZeroCoeffs,
                 yTuCoeffBits);
         else
-		    EstimateQuantizedCoefficients[1][(ASM_TYPES & PREAVX2_MASK) && 1](
+		    EstimateQuantizedCoefficients[1][!!(ASM_TYPES & PREAVX2_MASK)](
 			    CabacCost,
 			    cabacEncodeCtxPtr,
 			    (transformSize >> partialFrequencyN2Flag),
@@ -7754,7 +7949,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 		if (yCountNonZeroCoeffs) {
 
 			if (coeffCabacUpdate)
-				EstimateQuantizedCoefficientsUpdate[(ASM_TYPES & PREAVX2_MASK) && 1](
+				EstimateQuantizedCoefficientsUpdate[!!(ASM_TYPES & PREAVX2_MASK)](
 					updatedCoeffCtxModel,
 					CabacCost,
 					cabacEncodeCtxPtr,
@@ -7770,7 +7965,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 
             else
 
-			    EstimateQuantizedCoefficients[encoderModeIndex][(ASM_TYPES & PREAVX2_MASK) && 1](
+			    EstimateQuantizedCoefficients[encoderModeIndex][!!(ASM_TYPES & PREAVX2_MASK)](
 				    CabacCost,
 				    cabacEncodeCtxPtr,
 				    (transformSize >> partialFrequencyN2Flag),
@@ -7795,7 +7990,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 		if (cbCountNonZeroCoeffs) {
 
 			if (coeffCabacUpdate)
-				EstimateQuantizedCoefficientsUpdate[(ASM_TYPES & PREAVX2_MASK) && 1](
+				EstimateQuantizedCoefficientsUpdate[!!(ASM_TYPES & PREAVX2_MASK)](
 					updatedCoeffCtxModel,
 					CabacCost,
 					cabacEncodeCtxPtr,
@@ -7810,7 +8005,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 					cbTuCoeffBits);
             else
 
-			    EstimateQuantizedCoefficients[encoderModeIndex][(ASM_TYPES & PREAVX2_MASK) && 1](
+			    EstimateQuantizedCoefficients[encoderModeIndex][!!(ASM_TYPES & PREAVX2_MASK)](
 				    CabacCost,
 				    cabacEncodeCtxPtr,
 				    (transformChromaSize >> partialFrequencyN2Flag),
@@ -7835,7 +8030,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 		if (crCountNonZeroCoeffs) {
 
             if (coeffCabacUpdate) 
-                EstimateQuantizedCoefficientsUpdate[(ASM_TYPES & PREAVX2_MASK) && 1](
+                EstimateQuantizedCoefficientsUpdate[!!(ASM_TYPES & PREAVX2_MASK)](
                     updatedCoeffCtxModel,
                     CabacCost,
                     cabacEncodeCtxPtr,
@@ -7851,7 +8046,7 @@ EB_ERRORTYPE TuEstimateCoeffBits_R(
 
             else
 
-			    EstimateQuantizedCoefficients[encoderModeIndex][(ASM_TYPES & PREAVX2_MASK) && 1](
+			    EstimateQuantizedCoefficients[encoderModeIndex][!!(ASM_TYPES & PREAVX2_MASK)](
 				    CabacCost,
 				    cabacEncodeCtxPtr,
                     (transformChromaSize >> partialFrequencyN2Flag),

@@ -13,14 +13,15 @@
 #include "EbAppConfig.h"
 
 
-#define INPUT_SIZE_576p_TH				0x90000		// 0.58 Million
-#define INPUT_SIZE_1080i_TH				0xB71B0		// 0.75 Million
-#define INPUT_SIZE_1080p_TH				0x1AB3F0	// 1.75 Million
-#define INPUT_SIZE_4K_TH				0x29F630	// 2.75 Million
+#define INPUT_SIZE_576p_TH				0x90000     // 0.58 Million
+#define INPUT_SIZE_1080i_TH				0xB71B0     // 0.75 Million
+#define INPUT_SIZE_1080p_TH				0x1AB3F0    // 1.75 Million
+#define INPUT_SIZE_4K_TH				0x29F630    // 2.75 Million
+#define INPUT_SIZE_8K_TH				0xB71B00    // 12 Million
 
 #define SIZE_OF_ONE_FRAME_IN_BYTES(width, height,is16bit) ( ( ((width)*(height)*3)>>1 )<<is16bit)
 #define IS_16_BIT(bit_depth) (bit_depth==10?1:0)
-#define EB_OUTPUTSTREAMBUFFERSIZE_MACRO(ResolutionSize)                ((ResolutionSize) < (INPUT_SIZE_1080i_TH) ? 0x1E8480 : (ResolutionSize) < (INPUT_SIZE_1080p_TH) ? 0x2DC6C0 : (ResolutionSize) < (INPUT_SIZE_4K_TH) ? 0x2DC6C0 : 0x2DC6C0  )
+#define EB_OUTPUTSTREAMBUFFERSIZE_MACRO(ResolutionSize)                ((ResolutionSize) < (INPUT_SIZE_1080i_TH) ? 0x1E8480 : (ResolutionSize) < (INPUT_SIZE_1080p_TH) ? 0x2DC6C0 : (ResolutionSize) < (INPUT_SIZE_4K_TH) ? 0x2DC6C0 : (ResolutionSize) < (INPUT_SIZE_8K_TH) ? 0x2DC6C0:0x5B8D80)
 
  /***************************************
  * Variables Defining a memory table
@@ -181,6 +182,10 @@ EB_ERRORTYPE CopyConfigurationParameters(
     callbackData->ebEncParameters.minQpAllowed = config->minQpAllowed;
     callbackData->ebEncParameters.qp = config->qp;
     callbackData->ebEncParameters.useQpFile = (EB_BOOL)config->useQpFile;
+#if 1//TILES
+    callbackData->ebEncParameters.tileColumnCount = (EB_BOOL)config->tileColumnCount;
+    callbackData->ebEncParameters.tileRowCount = (EB_BOOL)config->tileRowCount;
+#endif
     callbackData->ebEncParameters.disableDlfFlag = (EB_BOOL)config->disableDlfFlag;
     callbackData->ebEncParameters.enableSaoFlag = (EB_BOOL)config->enableSaoFlag;
     callbackData->ebEncParameters.useDefaultMeHme = (EB_BOOL)config->useDefaultMeHme;
@@ -193,6 +198,7 @@ EB_ERRORTYPE CopyConfigurationParameters(
     callbackData->ebEncParameters.activeChannelCount = config->activeChannelCount;
     callbackData->ebEncParameters.logicalProcessors = config->logicalProcessors;
     callbackData->ebEncParameters.targetSocket = config->targetSocket;
+    callbackData->ebEncParameters.unrestrictedMotionVector = config->unrestrictedMotionVector;
 	callbackData->ebEncParameters.bitRateReduction = (uint8_t)config->bitRateReduction;
 	callbackData->ebEncParameters.improveSharpness = (uint8_t)config->improveSharpness;
     callbackData->ebEncParameters.videoUsabilityInfo = config->videoUsabilityInfo;
@@ -205,14 +211,19 @@ EB_ERRORTYPE CopyConfigurationParameters(
     callbackData->ebEncParameters.recoveryPointSeiFlag = config->recoveryPointSeiFlag;
     callbackData->ebEncParameters.enableTemporalId = config->enableTemporalId;
     callbackData->ebEncParameters.encoderBitDepth = config->encoderBitDepth;
-    callbackData->ebEncParameters.encoderColorFormat = config->encoderColorFormat;
+    callbackData->ebEncParameters.encoderColorFormat = (EB_COLOR_FORMAT)config->encoderColorFormat;
     callbackData->ebEncParameters.compressedTenBitFormat = config->compressedTenBitFormat;
     callbackData->ebEncParameters.profile = config->profile;
+    if(config->encoderColorFormat >= EB_YUV422 && config->profile != 4)
+    {
+        printf("\nWarning: input profile is not correct, force converting it from %d to MainREXT for YUV422 or YUV444 cases \n", config->profile);
+        callbackData->ebEncParameters.profile = 4;
+    }
     callbackData->ebEncParameters.tier = config->tier;
     callbackData->ebEncParameters.level = config->level;
     callbackData->ebEncParameters.injectorFrameRate = config->injectorFrameRate;
     callbackData->ebEncParameters.speedControlFlag = config->speedControlFlag;
-    callbackData->ebEncParameters.latencyMode = config->latencyMode;
+    //callbackData->ebEncParameters.latencyMode = config->latencyMode;
     callbackData->ebEncParameters.asmType = config->asmType;
     callbackData->ebEncParameters.reconEnabled = config->reconFile ? EB_TRUE : EB_FALSE;
     callbackData->ebEncParameters.codeVpsSpsPps = 1;
@@ -248,7 +259,7 @@ EB_ERRORTYPE AllocateFrameBuffer(
     EB_ERRORTYPE   return_error = EB_ErrorNone;
 
     const int32_t tenBitPackedMode = (config->encoderBitDepth > 8) && (config->compressedTenBitFormat == 0) ? 1 : 0;
-    const EB_COLOR_FORMAT colorFormat = config->encoderColorFormat;    // Chroma subsampling
+    const EB_COLOR_FORMAT colorFormat = (EB_COLOR_FORMAT)config->encoderColorFormat;    // Chroma subsampling
     const uint8_t subWidthCMinus1 = (colorFormat == EB_YUV444 ? 1 : 2) - 1;
 
     // Determine size of each plane

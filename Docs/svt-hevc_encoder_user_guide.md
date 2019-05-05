@@ -246,19 +246,19 @@ The encoder parameters present in the Sample.cfg file are listed in this table b
 | **StreamFile** | -b | any string | null | Output bitstream file path and name |
 | **ErrorFile** | -errlog | any string | stderr | Error log displaying configuration or encode errors |
 | **ReconFile** | -o | any string | null | Output reconstructed yuv used for debug purposes. **Note:** using this feature will affect the speed of the encoder significantly. This should only be used for debugging purposes. |
-| **UseQpFile** | -use-q-file | [0,1] | 0 | When set to 1, overwrite the picture qp assignment using qp values in QpFile |
+| **UseQpFile** | -use-q-file | [0, 1] | 0 | When set to 1, overwrite the picture qp assignment using qp values in QpFile |
 | **QpFile** | -qp-file | any string | null | Path to qp file |
 | **EncoderMode** | -encMode | [0 - 12] | 9 | A preset defining the quality vs density tradeoff point that the encoding is to be performed at. (e.g. 0 is the highest quality mode, 12 is the highest density mode). Section 3.4 outlines the preset availability per resolution |
-| **Tune** | -tune | [0,2] | 1 | 0 = SQ - visually optimized mode, 1 = OQ - PSNR / SSIM optimized mode, 2 = VMAF - VMAF optimized mode |
-| **LatencyMode** | -latency-mode | [0,1] | 0 | For lower latency (0: Normal Latency, 1: Low Latency) |
-| **EncoderBitDepth** | -bit-depth | [8 , 10] | 8 | specifies the bit depth of the input video |
-| **CompressedTenBitFormat** | -compressed-ten-bit-format | [0,1] | 0 | Offline packing of the 2bits: requires two bits packed input (0: OFF, 1: ON) |
+| **Tune** | -tune | [0, 1, 2] | 1 | 0 = SQ - visually optimized mode, 1 = OQ - PSNR / SSIM optimized mode, 2 = VMAF - VMAF optimized mode |
+| **EncoderBitDepth** | -bit-depth | [8, 10] | 8 | Specifies the bit depth of input video |
+| **EncoderColorFormat** | -color-format | [1, 2, 3] | 1 | Specifies the chroma subsampling of input video(1: 420, 2: 422, 3: 444) |
+| **CompressedTenBitFormat** | -compressed-ten-bit-format | [0, 1] | 0 | Offline packing of the 2bits: requires two bits packed input (0: OFF, 1: ON) |
 | **SourceWidth** | -w | [64 - 8192] | 0 | Input source width |
 | **SourceHeight** | -h | [64 - 4320] | 0 | Input source height |
 | **FrameToBeEncoded** | -n | [0 - 2^31 -1] | 0 | Number of frames to be encoded, if number of frames is > number of frames in file, the encoder will loop to the beginning and continue the encode. 0 encodes the full clip. |
 | **BufferedInput** | -nb | [-1, 1 to 2^31 -1] | -1 | number of frames to preload to the RAM before the start of the encode. If -nb = 100 and –n 1000 --> the encoder will encode the first 100 frames of the video 10 times. Use -1 to not preload any frames. |
 | **Profile** | -profile | [1,2] | 2 | 1: Main, 2: Main 10 |
-| **Tier** | -tier | [0,1] | 0 | 0: Main, 1: High |
+| **Tier** | -tier | [0, 1] | 0 | 0: Main, 1: High |
 | **Level** | -level | [1, 2, 2.1,3, 3.1, 4, 4.1, 5, 5.1, 5.2, 6, 6.1, 6.2] | 0 | 0 to 6.2 [0 for auto determine Level] |
 | **FrameRate** | -fps | [0 - 2^64 -1] | 25 | If the number is less than 1000, the input frame rate is an integer number between 1 and 60, else the input number is in Q16 format (shifted by 16 bits) [Max allowed is 240 fps]. If FrameRateNumerator and FrameRateDenominator are both !=0 the encoder will ignore this parameter |
 | **FrameRateNumerator** | -fps-num | [0 - 2^64 -1] | 0 | Frame rate numerator e.g. 6000When zero, the encoder will use –fps if FrameRateDenominator is also zero, otherwise an error is returned |
@@ -274,9 +274,9 @@ The encoder parameters present in the Sample.cfg file are listed in this table b
 | **IntraPeriod** | -intra-period | [-2 - 255] | -2 | Distance Between Intra Frame inserted. -1 denotes no intra update. -2 denotes auto. |
 | **IntraRefreshType** | -irefresh-type | [1,2] | 1 | 1: CRA (Open GOP)2: IDR (Closed GOP) |
 | **QP** | -q | [0 - 51] | 25 | Initial quantization parameter for the Intra pictures used when RateControlMode 0 (CQP) |
-| **LoopFilterDisable** | -dlf | [0,1] | 0 | When set to 1 disables the Deblocking Loop Filtering |
+| **LoopFilterDisable** | -dlf | [0, 1] | 0 | When set to 1 disables the Deblocking Loop Filtering |
 | **SAO** | -sao | [0,1] | 1 | When set to 0 the encoder will not use the Sample Adaptive Filter |
-| **UseDefaultMeHme** | -use-default-me-hme | [0,1] | 1 | 0 : Overwrite Default ME HME parameters<br>1 : Use default ME HME parameters, dependent on width and height |
+| **UseDefaultMeHme** | -use-default-me-hme | [0, 1] | 1 | 0 : Overwrite Default ME HME parameters<br>1 : Use default ME HME parameters, dependent on width and height |
 | **HME** | -hme | [0,1] | 1 | Enable HME, 0 = OFF, 1 = ON |
 | **SearchAreaWidth** | -search-w | [1 - 256] | Depends on input resolution | Search Area in Width |
 | **SearchAreaHeight** | -search-h | [1 - 256] | Depends on input resolution | Search Area in Height |
@@ -299,10 +299,13 @@ The encoder parameters present in the Sample.cfg file are listed in this table b
 | **RecoveryPoint** | -recovery-point | [0,1] | 0 | SEI message, 0 = OFF, 1 = ON |
 | **TemporalId** | -temporal-id | [0,1] | 1 | 0 = OFF, 1 = Insert temporal ID in NAL units |
 | **AsmType** | -asm | [0,1] | 1 | Assembly instruction set <br>(0: C Only, 1: Automatically select highest assembly instruction set supported) |
-| **LogicalProcessorNumber** | -lp | [0, total number of logical processor] | 0 | The number of logical processor which encoder threads run on.Refer to Appendix A.2 |
+| **LogicalProcessors** | -lp | [0, total number of logical processor] | 0 | The number of logical processor which encoder threads run on.Refer to Appendix A.2 |
 | **TargetSocket** | -ss | [-1,1] | -1 | For dual socket systems, this can specify which socket the encoder runs on.Refer to Appendix A.2 |
 | **SwitchThreadsToRtPriority** | -rt | [0,1] | 1 | Enables or disables threads to real time priority, 0 = OFF, 1 = ON (only works on Linux) |
 | **FPSInVPS** | -fpsinvps | [0,1] | 0 | Enables or disables the VPS timing info, 0 = OFF, 1 = ON |
+| **TileRowCount** | -tile_row_cnt | [1,16] | 1 | Tile count in the Row |
+| **TileColumnCount** | -tile_col_cnt | [1,16] | 1 | Tile count in the column |
+| **UnrestrictedMotionVector** | -umv | [0,1] | 1 | Enables or disables unrestriced motion vectors, 0 = OFF(motion vectors are constrained within frame boundary), 1 = ON |
 | **MaxCLL** | -max-cll | [0 , 2^16-1] | 0 | Maximum content light level (MaxCLL) as required by the Consumer Electronics Association 861.3 specification. Applicable for HDR content. If specified, signalled only when HighDynamicRangeInput is set to 1 |
 | **MaxFALL** | -max-fall | [0 , 2^16-1] | 0 | Maximum Frame Average light level (MaxFALL) as required by the Consumer Electronics Association 861.3 specification. Applicable for HDR content. If specified, signalled only when HighDynamicRangeInput is set to 1 |
 | **UseMasterDisplay** | -use-master-display | [0,1] | 0 | Enables or disables the MasterDisplayColorVolume, 0 = OFF, 1 = ON |
@@ -363,7 +366,7 @@ The above section is not needed for Windows\* as it does not perform the CPU uti
 
 The SVT-HEVC encoder achieves the best performance when restricting each channel to only one socket on either Windows\* or Linux\* operating systems. For example, when running four channels on a dual socket system, it&#39;s best to pin two channels to each socket and not split every channel on both sockets.
 
-LogicalProcessorNumber (-lp) and TargetSocket (-ss) parameters can be used to management the threads. Or you can use OS commands like below.
+LogicalProcessors (-lp) and TargetSocket (-ss) parameters can be used to management the threads. Or you can use OS commands like below.
 
 For example, in order to run a 6-stream 4kp60 simultaneous encode on a Xeon Platinum 8180 system the following command lines should be used:
 
@@ -415,7 +418,7 @@ Where 0x0000000FFFFFFF0000000FFFFFFF and 0xFFFFFFF0000000FFFFFFF0000000 are mask
 
 ## Appendix A Encoder Parameters
 
-### Hierarchical coding structure parameters
+### 1. Hierarchical coding structure parameters
 
 The GOP is constructed assuming a prediction structure (PredStructure: LowDelay/Random-Access) and hierarchical levels (HierarchicalLevels: number of hierarchical layers).
 
@@ -435,15 +438,15 @@ In a LowDelay structure, B/b pictures can be used instead of P/p pictures. Howev
 
 In the SVT-HEVC code, the GOP structure is constructed in the Picture Decision process which performs multi-picture level decisions, including setting the prediction structure, setting the picture type, and scene change detection.  Since the prior Picture Analysis processes stage is multithreaded, inputs to the Picture Decision Process can arrive out-of-display-order, so a reordering queue is used to enforce processing of pictures in display order.  The algorithms employed in the Picture Decision process are dependent on prior pictures' statistics, so the order in which pictures are processed must be strictly enforced.  Additionally, the Picture Decision process uses the reorder queue to hold input pictures until they are ready to be sent to the Motion Analysis process, following the proper prediction structure.
 
-### Thread management parameters
+### 2. Thread management parameters
 
-LogicalProcessorNumber (-lp) and TargetSocket (-ss) parameters are used to management thread affinity on Windows and Ubuntu OS. These are some examples how you use them together.
+LogicalProcessors (-lp) and TargetSocket (-ss) parameters are used to management thread affinity on Windows and Ubuntu OS. These are some examples how you use them together.
 
-If LogicalProcessorNumber and TargetSocket are not set, threads are managed by OS thread scheduler.
+If LogicalProcessors and TargetSocket are not set, threads are managed by OS thread scheduler.
 
 >SvtHevcEncApp.exe -i in.yuv -w 3840 -h 2160 –lp 40
 
-If only LogicalProcessorNumber is set, threads run on 40 logical processors. Threads may run on dual sockets if 40 is larger than logical processor number of a socket.
+If only LogicalProcessors is set, threads run on 40 logical processors. Threads may run on dual sockets if 40 is larger than logical processor number of a socket.
 
 NOTE: On Windows, thread affinity can be set only by group on system with more than 64 logical processors. So, if 40 is larger than logical processor number of a single socket, threads run on all logical processors of both sockets.
 
@@ -453,7 +456,7 @@ If only TargetSocket is set, threads run on all the logical processors of socket
 
 >SvtHevcEncApp.exe -i in.yuv -w 3840 -h 2160 –lp 20 –ss 0
 
-If both LogicalProcessorNumber and TargetSocket are set, threads run on 20 logical processors of socket 0. Threads guaranteed to run only on socket 0 if 20 is larger than logical processor number of socket 0.
+If both LogicalProcessors and TargetSocket are set, threads run on 20 logical processors of socket 0. Threads guaranteed to run only on socket 0 if 20 is larger than logical processor number of socket 0.
 
 
 
