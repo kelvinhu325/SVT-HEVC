@@ -185,6 +185,7 @@ EB_ERRORTYPE CopyConfigurationParameters(
 #if 1//TILES
     callbackData->ebEncParameters.tileColumnCount = (EB_BOOL)config->tileColumnCount;
     callbackData->ebEncParameters.tileRowCount = (EB_BOOL)config->tileRowCount;
+    callbackData->ebEncParameters.tileSliceMode = (EB_BOOL)config->tileSliceMode;
 #endif
     callbackData->ebEncParameters.disableDlfFlag = (EB_BOOL)config->disableDlfFlag;
     callbackData->ebEncParameters.enableSaoFlag = (EB_BOOL)config->enableSaoFlag;
@@ -218,6 +219,11 @@ EB_ERRORTYPE CopyConfigurationParameters(
     {
         printf("\nWarning: input profile is not correct, force converting it from %d to MainREXT for YUV422 or YUV444 cases \n", config->profile);
         callbackData->ebEncParameters.profile = 4;
+    }
+    else if(config->encoderBitDepth > 8 && config->profile < 2)
+    {
+        printf("\nWarning: input profile is not correct, force converting it from %d to Main10 for 10 bits cases\n", config->profile);
+        callbackData->ebEncParameters.profile = 2;
     }
     callbackData->ebEncParameters.tier = config->tier;
     callbackData->ebEncParameters.level = config->level;
