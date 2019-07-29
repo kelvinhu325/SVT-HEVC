@@ -191,10 +191,6 @@ The sample application typically takes the following command line parameters:
 
 A text file that contains encoder parameters such as input file name, quantization parameter etc. Refer to the comments in the Config/Sample.cfg for specific details. The list of encoder parameters are also listed below. Note that command line parameters take precedence over the parameters included in the configuration file when there is a conflict.
 
->-tune integer **[Optional]**
-
-This token sets the encoder to run in the visual quality optimized mode (when set to 0), PSNR/SSIM optimized mode (when set to 1 [default setting]), or VMAF optimized mode (when set to 2)
-
 >-i filename **[Required]**
 
 A YUV file (e.g. 8 bit 4:2:0 planar) containing the video sequence that will be encoded.  The dimensions of each image are specified by –w and –h as indicated below. Files encoded in YUV4MPEG2 format are also supported (common extension is ".y4m"). The header in YUV4MPEG2 files contains width, height, framerate, and bit-depth information which do not need to be additional specified as command line arguments.
@@ -261,8 +257,7 @@ The encoder parameters present in the Sample.cfg file are listed in this table b
 | **ReconFile** | -o | any string | null | Output reconstructed yuv used for debug purposes. **Note:** using this feature will affect the speed of the encoder significantly. This should only be used for debugging purposes. |
 | **UseQpFile** | -use-q-file | [0, 1] | 0 | When set to 1, overwrite the picture qp assignment using qp values in QpFile |
 | **QpFile** | -qp-file | any string | null | Path to qp file |
-| **EncoderMode** | -encMode | [0 - 12] | 9 | A preset defining the quality vs density tradeoff point that the encoding is to be performed at. (e.g. 0 is the highest quality mode, 12 is the highest density mode). Section 3.4 outlines the preset availability per resolution |
-| **Tune** | -tune | [0, 1, 2] | 1 | 0 = SQ - visually optimized mode, 1 = OQ - PSNR / SSIM optimized mode, 2 = VMAF - VMAF optimized mode |
+| **EncoderMode** | -encMode | [0 - 11] | 7 | A preset defining the quality vs density tradeoff point that the encoding is to be performed at. (e.g. 0 is the highest quality mode, 11 is the highest density mode). Section 3.4 outlines the preset availability per resolution |
 | **EncoderBitDepth** | -bit-depth | [8, 10] | 8 | Specifies the bit depth of input video |
 | **EncoderColorFormat** | -color-format | [1, 2, 3] | 1 | Specifies the chroma subsampling of input video(1: 420, 2: 422, 3: 444) |
 | **CompressedTenBitFormat** | -compressed-ten-bit-format | [0, 1] | 0 | Offline packing of the 2bits: requires two bits packed input (0: OFF, 1: ON) |
@@ -296,12 +291,16 @@ The encoder parameters present in the Sample.cfg file are listed in this table b
 | **ConstrainedIntra** | -constrd-intra | [0,1] | 0 | Allow the use of Constrained Intra, when enabled, this features yields to sending two PPSs in the HEVC Elementary streams <br>0 = OFF, 1 = ON |
 | **RateControlMode** | -rc | [0,1] | 0 | 0 : CQP , 1 : VBR |
 | **TargetBitRate** | -tbr | Any Number | 7000000 | Target bitrate in bits / second. Only used when RateControlMode is set to 1 |
+| **vbvMaxrate** | -vbv-maxrate | Any Number | 0 | VBVMaxrate in bits / second. Only used when RateControlMode is set to 1 |
+| **vbvBufsize** | -vbv-bufsize | Any Number | 0 | VBV BufferSize in bits / second. Only used when RateControlMode is set to 1 |
+| **vbvBufInit** | -vbv-init | [0 - 100] | 90 | Sets how full the VBV buffer to be|
+| **hrdFlag** | -hrd | [0,1] | 0 | HRD Flag, 0 = OFF, 1 = ON |When hrdFlag is set to 1 it requires vbvMaxrate and vbvBufsize to be greater than 0 |
 | **MaxQpAllowed** | -max-qp | [0 - 51] | 48 | Maximum QP value allowed for rate control use. Only used when RateControlMode is set to 1. Has to be >= MinQpAllowed |
 | **MinQpAllowed** | -min-qp | [0 - 50] | 10 | Minimum QP value allowed for rate control use. Only used when RateControlMode is set to 1. Has to be < MaxQpAllowed |
 | **LookAheadDistance** | -lad | [0 - 250] | Depending on BRC mode | When RateControlMode is set to 1 it&#39;s best to set this parameter to be equal to the Intra period value (such is the default set by the encoder), When CQP is chosen, then a (2 \* minigopsize +1) look ahead is recommended. |
 | **SceneChangeDetection** | -scd | [0,1] | 1 | Enables or disables the scene change detection algorithm <br> 0 = OFF, 1 = ON |
-| **BitRateReduction** | -brr | [0,1] | 1 | Enables visual quality algorithms to reduce the output bitrate with minimal or no subjective visual quality impact. (no support for –tune 1 or -tune 2) <br>0 = OFF, 1 = ON |
-| **ImproveSharpness** | -sharp | [0,1] | 1 | This is a visual quality knob that allows the use of adaptive quantization within the picture and enables visual quality algorithms that improve the sharpness of the background. This feature is only available for 4k and 8k resolutions (no support for –tune 1 or -tune 2) <br> 0 = OFF, 1 = ON |
+| **BitRateReduction** | -brr | [0,1] | 1 | Enables visual quality algorithms to reduce the output bitrate with minimal or no subjective visual quality impact. <br>0 = OFF, 1 = ON |
+| **ImproveSharpness** | -sharp | [0,1] | 1 | This is a visual quality knob that allows the use of adaptive quantization within the picture and enables visual quality algorithms that improve the sharpness of the background. This feature is only available for 4k and 8k resolutions <br> 0 = OFF, 1 = ON |
 | **VideoUsabilityInfo** | -vid-info | [0,1] | 0 | Enables or disables sending a vui structure in the HEVC Elementary bitstream. 0 = OFF, 1 = ON |
 | **HighDynamicRangeInput** | -hdr | [0,1] | 0 | When set to 1, signals HDR10 input in the output HEVC elementary bitstream and forces VideoUsabilityInfo to 1. <br>0 = OFF, 1 = ON |
 | **AccessUnitDelimiter** | -ua-delm | [0,1] | 0 | SEI message, 0 = OFF, 1 = ON |
@@ -386,46 +385,61 @@ For example, in order to run a 6-stream 4kp60 simultaneous encode on a Xeon Plat
 
 #### *Running Windows\* Server 2016:*
 
->start /node 0 SvtHevcEncApp.exe -encMode 12 -tune 0 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out1.bin   -n 5000 –nb 500
+>start /node 0 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out1.bin   -n 5000 –nb 500
 
->start /node 0 SvtHevcEncApp.exe -encMode 12 -tune 0 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out2.bin   -n 5000 –nb 500
+>start /node 0 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out2.bin   -n 5000 –nb 500
 
->start /node 0 SvtHevcEncApp.exe -encMode 12 -tune 0 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500
+>start /node 0 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500
 
->start /node 1 SvtHevcEncApp.exe -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500
+>start /node 1 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500
 
->start /node 1 SvtHevcEncApp.exe -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out4.bin   -n 5000 –nb 500
+>start /node 1 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out4.bin   -n 5000 –nb 500
 
->start /node 1 SvtHevcEncApp.exe -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out5.bin   -n 5000 –nb 500
+>start /node 1 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out5.bin   -n 5000 –nb 500
 
 #### *Running Ubuntu\* 18.04:*
 
->taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out1.bin   -n 5000 –nb 500  &amp;
+>taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out1.bin   -n 5000 –nb 500  &amp;
 
->taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out2.bin   -n 5000 –nb 500  &amp;
+>taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out2.bin   -n 5000 –nb 500  &amp;
 
->taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500 &amp;
+>taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500 &amp;
 
->taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500  &amp;
+>taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out3.bin   -n 5000 –nb 500  &amp;
 
->taskset 0xFFFFFFF0000000FFFFFFF0000000./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out4.bin   -n 5000 –nb 500 &amp;
+>taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out4.bin   -n 5000 –nb 500 &amp;
 
->taskset 0xFFFFFFF0000000FFFFFFF0000000./SvtHevcEncApp -encMode 12 -tune 0  -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out5.bin   -n 5000 –nb 500 &amp;
+>taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -fps 60  -b out5.bin   -n 5000 –nb 500 &amp;
 
 <br>
 Similarly, in order to run a 2-stream 8kp50 simultaneous encode on a Xeon Platinum 8180 system the following command lines should be used:
 
 #### *Running Windows\* Server 2016:*
 
->start /node 0 SvtHevcEncApp.exe -encMode 12 -tune 0  -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500
+>start /node 0 SvtHevcEncApp.exe -encMode 11 -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500
 
->start /node 1 SvtHevcEncApp.exe -encMode 12 -tune 0  -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500
+>start /node 1 SvtHevcEncApp.exe -encMode 11 -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500
 
 #### *Running Ubuntu 18.04\*:*
 
->taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 12 -tune 0  -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500  &amp;
+>taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 11 -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500  &amp;
 
->taskset 0xFFFFFFF0000000FFFFFFF0000000./SvtHevcEncApp -encMode 12 -tune 0  -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500  &amp;
+>taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 11 -w 7680  -h 4320 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 20000000 -fps 50  -b out1.bin   -n 5000 –nb 500  &amp;
+
+<br>
+Similarly, in order to enable VBV and run a 2-stream 8kp50 simultaneous encode on a Xeon Platinum 8180 system the following command lines should be used:
+
+#### *Running Windows\* Server 2016:*
+
+>start /node 0 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -vbv-maxrate 10000000  -vbv-bufsize 10000000 -fps 50  -b out1.bin   -n 5000 –nb 500
+
+>start /node 1 SvtHevcEncApp.exe -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -vbv-maxrate 10000000 -vbv-bufsize 10000000 -fps 50  -b out3.bin   -n 5000 –nb 500
+
+#### *Running Ubuntu\* 18.04:*
+
+>taskset 0x0000000FFFFFFF0000000FFFFFFF ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -vbv-maxrate 10000000  -vbv-bufsize 10000000 -fps 50  -b out3.bin   -n 5000 –nb 500 &amp;
+
+>taskset 0xFFFFFFF0000000FFFFFFF0000000 ./SvtHevcEncApp -encMode 11 -w 3840 -h 2160 -bit-depth 10 -compressed-ten-bit-format 1 -i in.yuv  -rc 1 –tbr 10000000 -vbv-maxrate 10000000  -vbv-bufsize 10000000 -fps 50  -b out3.bin   -n 5000 –nb 500  &amp;
 
 <br>
 Where 0x0000000FFFFFFF0000000FFFFFFF and 0xFFFFFFF0000000FFFFFFF0000000 are masks for sockets 0 and 1 respectively on a dual 8180 system.

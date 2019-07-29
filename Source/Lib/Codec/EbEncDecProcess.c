@@ -2771,24 +2771,27 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 			contextPtr->mdContext->chromaLevel = 0;
 		}
 	}
-    else {
-		if (pictureControlSetPtr->sliceType == EB_I_PICTURE) {
-			contextPtr->mdContext->chromaLevel = 1;
-		}
-		else if (pictureControlSetPtr->temporalLayerIndex == 0) {
-			contextPtr->mdContext->chromaLevel = 0;
-		}
-        else if (pictureControlSetPtr->ParentPcsPtr->isUsedAsReferenceFlag) {
-			if (contextPtr->mdContext->intraMdOpenLoopFlag) {
-				contextPtr->mdContext->chromaLevel = 4;
-			}
-			else {
-				contextPtr->mdContext->chromaLevel = 0;
-			}
+    else if (pictureControlSetPtr->encMode <= ENC_MODE_10) {
+        if (pictureControlSetPtr->sliceType == EB_I_PICTURE) {
+            contextPtr->mdContext->chromaLevel = 1;
         }
-		else {
-			contextPtr->mdContext->chromaLevel = 1;
-		}
+        else if (pictureControlSetPtr->temporalLayerIndex == 0) {
+            contextPtr->mdContext->chromaLevel = 0;
+        }
+        else if (pictureControlSetPtr->ParentPcsPtr->isUsedAsReferenceFlag) {
+            if (contextPtr->mdContext->intraMdOpenLoopFlag) {
+                contextPtr->mdContext->chromaLevel = 4;
+            }
+            else {
+                contextPtr->mdContext->chromaLevel = 0;
+            }
+        }
+        else {
+            contextPtr->mdContext->chromaLevel = 1;
+        }
+    }
+    else {
+        contextPtr->mdContext->chromaLevel = 1;
     }
 
     // Set Coeff Cabac Update Flag
@@ -2891,7 +2894,7 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 	contextPtr->yBitsThsld = YBITS_THSHLD_1(0);
     
     // Set SAO Mode
-	contextPtr->saoMode = 1;
+    contextPtr->saoMode = (pictureControlSetPtr->ParentPcsPtr->encMode <= ENC_MODE_10) ? 1 : 0;
     
     // Set Exit Partitioning Flag 
     if (pictureControlSetPtr->encMode >= ENC_MODE_10) {
@@ -2992,13 +2995,26 @@ static EB_ERRORTYPE SignalDerivationEncDecKernelOq(
 			}
 		}
 	}
-    else {
+    else if (pictureControlSetPtr->encMode <= ENC_MODE_10) {
         if (pictureControlSetPtr->temporalLayerIndex == 0) {
             contextPtr->mdContext->pfMdLevel = 0;
         }
         else {
             contextPtr->mdContext->pfMdLevel = 1;
-        }   
+        }
+    }
+    else
+    {
+
+        if (pictureControlSetPtr->sliceType == EB_I_PICTURE) {
+            contextPtr->mdContext->pfMdLevel = 1;
+        }
+        else if (pictureControlSetPtr->ParentPcsPtr->temporalLayerIndex == 0) {
+            contextPtr->mdContext->pfMdLevel = 1;
+        }
+        else {
+            contextPtr->mdContext->pfMdLevel = 3;
+        }
     }
 
     // Set INTRA4x4 Search Level
@@ -3871,6 +3887,7 @@ void* EncDecKernel(void *inputPtr)
         EbGetFullObject(
             contextPtr->modeDecisionInputFifoPtr,
             &encDecTasksWrapperPtr);
+        EB_CHECK_END_OBJ(encDecTasksWrapperPtr);
 
         encDecTasksPtr = (EncDecTasks_t*)encDecTasksWrapperPtr->objectPtr;
         pictureControlSetPtr = (PictureControlSet_t*)encDecTasksPtr->pictureControlSetWrapperPtr->objectPtr;
@@ -3928,12 +3945,6 @@ void* EncDecKernel(void *inputPtr)
                     pictureControlSetPtr,
                     contextPtr);
         }
-
-#if 1//TILES  //NEED these  to test stream complaince
-        // contextPtr->pmMethod = 0;
-        contextPtr->mdContext->rdoqPmCoreMethod = EB_NO_RDOQ;  //RDOQ   make DLF cause MD5 mismatch when encDec segments+QP mod are ON.. 
-        contextPtr->allowEncDecMismatch =  EB_FALSE;
-#endif
 
         // Derive Interpoldation Method @ Fast-Loop 
         contextPtr->mdContext->interpolationMethod = (pictureControlSetPtr->ParentPcsPtr->useSubpelFlag == EB_FALSE) ?
