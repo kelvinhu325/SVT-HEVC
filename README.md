@@ -28,13 +28,15 @@ SVT-HEVC may run on any Windows* or Linux* 64 bit operating systems. The list be
 
 - __Windows* Operating Systems (64-bit):__
 
-  - Windows* Server 2016
+  - Windows Server 2016
 
 - __Linux* Operating Systems (64-bit):__
 
-  - Ubuntu* 16.04 Server LTS
+  - Ubuntu 16.04 Server LTS
 
-  - Ubuntu* 18.04 Server LTS
+  - Ubuntu 18.04 Server LTS
+
+  - CentOS 7.4/7.5/7.6
 
 ### Hardware
 
@@ -94,11 +96,23 @@ In order to run the highest resolution supported by the encoder, at least 64GB o
   - YASM Assembler version 1.2.0 or later
 
 - __Build Instructions__
-  - In the main repository, run
-    - `mkdir build && cd build && cmake .. && make -j $(nproc) && sudo make install`
+  - In the main repository, run either the provided build script
+
+    ``` bash
+    cd Build/linux
+    ./build.sh [release|debug] [static|shared] [install]
+    # Requires sudo permission for installing
+    # Run './build.sh -h' to see the full help
+    ```
+
+  - or run the commands directly
+
+    ``` bash
+    mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=<Release|Debug> && make -j $(nproc) && sudo make install
+    ```
 
 - __Sample Binaries location__
-  - Binaries can be found under `Bin/Release`
+  - Binaries can be found under `$REPO_DIR/Bin/Release`
 
 - __Installation__\
 For the binaries to operate properly, the following conditions have to be met:

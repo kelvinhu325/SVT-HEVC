@@ -1522,12 +1522,12 @@ void SetTargetBudgetOq(
             budget = (contextPtr->adpDepthSensitivePictureClass == DEPTH_SENSITIVE_PIC_CLASS_2) ?
             pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * OPEN_LOOP_COST :
             (contextPtr->adpDepthSensitivePictureClass == DEPTH_SENSITIVE_PIC_CLASS_1) ?
-            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * U_104 :
-            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * U_103;
+            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * 100 :
+            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * 100;
         else
             budget = (contextPtr->adpDepthSensitivePictureClass == DEPTH_SENSITIVE_PIC_CLASS_2) ?
-            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * U_104 :
-            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * U_103;
+            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * 100 :
+            pictureControlSetPtr->ParentPcsPtr->lcuTotalCount * 100;
     }
 
 
@@ -2541,7 +2541,7 @@ void* ModeDecisionConfigurationKernel(void *inputPtr)
 
         //printf("MDC, post POC %d, decoder order %d\n",
         //        pictureControlSetPtr->pictureNumber, pictureControlSetPtr->ParentPcsPtr->decodeOrder);
-        for (unsigned tileRowIdx = 0; tileRowIdx < sequenceControlSetPtr->tileRowCount; tileRowIdx++) {
+        for (unsigned tileRowIdx = 0; tileRowIdx < pictureControlSetPtr->ParentPcsPtr->tileRowCount; tileRowIdx++) {
             // TODO: Too many objects may drain the FIFO and downgrade the perf
             EbGetEmptyObject(
                     contextPtr->modeDecisionConfigurationOutputFifoPtr,
@@ -2567,8 +2567,7 @@ void* ModeDecisionConfigurationKernel(void *inputPtr)
                 finishTimeuSeconds,
                 &latency);
 
-        SVT_LOG("[%lld]: POC %lld MDC OUT, decoder order %d, latency %3.3f \n",
-                EbGetSysTimeMs(),
+        SVT_LOG("POC %lld MDC OUT, decoder order %d, latency %3.3f \n",
                 pictureControlSetPtr->ParentPcsPtr->pictureNumber,
                 pictureControlSetPtr->ParentPcsPtr->decodeOrder,
                 latency);

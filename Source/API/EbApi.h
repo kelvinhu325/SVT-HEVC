@@ -9,15 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <EbApiVersion.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
-
-// API Version
-#define SVT_VERSION_MAJOR       1
-#define SVT_VERSION_MINOR       3
-#define SVT_VERSION_PATCHLEVEL  0
 
 #define EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT     2
 #define EB_HME_SEARCH_AREA_ROW_MAX_COUNT        2
@@ -184,11 +180,11 @@ typedef struct EB_H265_ENC_CONFIGURATION
 
     /* Random access.
      *
-     * 1 = CRA, open GOP.
-     * 2 = IDR, closed GOP.
+     * -1  = CRA, open GOP.
+     * >=0 = IDR, closed GOP, and the value is headers insertion interval.
      *
-     * Default is 1. */
-    uint32_t                intraRefreshType;
+     * Default is -1. */
+    int32_t                intraRefreshType;
 
     /* Number of hierarchical layers used to construct GOP.
      * Minigop size = 2^HierarchicalLevels.

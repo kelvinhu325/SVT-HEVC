@@ -6,7 +6,7 @@
 #include "EbAppInputy4m.h"
 #define YFM_HEADER_MAX 80
 #define YUV4MPEG2_IND_SIZE 9
-#define PRINT_HEADER 0
+
 #define CHROMA_MAX 4
 
 #include "EbAppConfig.h"
@@ -35,7 +35,12 @@ int32_t read_y4m_header(EbConfig_t *cfg) {
     char *fresult, *tokstart, *tokend, format_str[YFM_HEADER_MAX];
     uint32_t bitdepth = 8, width = 0, height = 0, fr_n = 0,
         fr_d = 0, aspect_n, aspect_d;
-    char chroma[CHROMA_MAX] = "420", scan_type = 'p';
+    char chroma[CHROMA_MAX] = "420";
+    (void)aspect_d;
+    (void)aspect_n;
+#ifdef PRINT_HEADER
+    char scan_type = 'p';
+#endif
     EB_BOOL interlaced = EB_TRUE;
 
     /* pointer to the input file */
@@ -76,15 +81,21 @@ int32_t read_y4m_header(EbConfig_t *cfg) {
             switch (*tokstart++) {
             case 'p':
                 interlaced = EB_FALSE;
+#ifdef PRINT_HEADER
                 scan_type = 'p';
+#endif
                 break;
             case 't':
                 interlaced = EB_TRUE;
+#ifdef PRINT_HEADER
                 scan_type = 't';
+#endif
                 break;
             case 'b':
                 interlaced = EB_TRUE;
+#ifdef PRINT_HEADER
                 scan_type = 'b';
+#endif
                 break;
             case '?':
             default:

@@ -80,7 +80,7 @@ new file mode 100644
 index 0000000..d9ac04c
 --- /dev/null
 +++ b/libavcodec/libsvt_hevc.c
-@@ -0,0 +1,501 @@
+@@ -0,0 +1,499 @@
 +/*
 +* Scalable Video Technology for HEVC encoder library plugin
 +*
@@ -103,8 +103,6 @@ index 0000000..d9ac04c
 +* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 +*/
 +
-+#include "EbErrorCodes.h"
-+#include "EbTime.h"
 +#include "EbApi.h"
 +
 +#include "libavutil/common.h"
@@ -278,7 +276,7 @@ index 0000000..d9ac04c
 +    param->accessUnitDelimiter = svt_enc->aud;
 +    param->asmType = svt_enc->asm_type;
 +
-+    param->intraRefreshType =  svt_enc->forced_idr + 1;
++    param->intraRefreshType =  svt_enc->forced_idr;
 +
 +    if (svt_enc->la_depth != -1)
 +        param->lookAheadDistance = svt_enc->la_depth;
@@ -496,7 +494,7 @@ index 0000000..d9ac04c
 +      AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, VE },
 +
 +    { "forced-idr", "If forcing keyframes, force them as IDR frames.", OFFSET(forced_idr),
-+      AV_OPT_TYPE_BOOL,   { .i64 = 0 }, 0, 1, VE },
++      AV_OPT_TYPE_INT,   { .i64 = -1 }, -1, INT_MAX, VE },
 +
 +    { "hielevel", "Hierarchical prediction levels setting", OFFSET(hierarchical_level),
 +      AV_OPT_TYPE_INT, { .i64 = 3 }, 0, 3, VE , "hielevel"},
