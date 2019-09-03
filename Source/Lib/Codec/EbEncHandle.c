@@ -481,8 +481,8 @@ typedef struct logicalProcessorGroup {
     uint32_t num;
     uint32_t group[1024];
 }processorGroup;
-#define MAX_PROCESSOR_GROUP 16
-processorGroup                   lpGroup[MAX_PROCESSOR_GROUP];
+#define INITIAL_PROCESSOR_GROUP 16
+processorGroup                  *lpGroup = EB_NULL;
 #endif
 
 /**************************************
@@ -734,9 +734,10 @@ EB_ERRORTYPE InitThreadManagmentParams(){
     const char* PHYSICALID = "physical id";
     int processor_id_len = strnlen_ss(PROCESSORID, 128);
     int physical_id_len = strnlen_ss(PHYSICALID, 128);
+    int maxSize = INITIAL_PROCESSOR_GROUP;
     if (processor_id_len < 0 || processor_id_len >= 128) return EB_ErrorInsufficientResources;
     if (physical_id_len < 0 || physical_id_len >= 128) return EB_ErrorInsufficientResources;
-    memset(lpGroup, 0, 16* sizeof(processorGroup));
+    memset(lpGroup, 0, INITIAL_PROCESSOR_GROUP * sizeof(processorGroup));
 
     FILE *fin = fopen("/proc/cpuinfo", "r");
     if (fin) {
@@ -752,12 +753,18 @@ EB_ERRORTYPE InitThreadManagmentParams(){
                 char* p = line + physical_id_len;
                 while(*p < '0' || *p > '9') p++;
                 socket_id = strtol(p, NULL, 0);
-                if (socket_id < 0 || socket_id > 15) {
+                if (socket_id < 0) {
                     fclose(fin);
                     return EB_ErrorInsufficientResources;
                 }
                 if (socket_id + 1 > numGroups)
                     numGroups = socket_id + 1;
+                if (socket_id >= maxSize) {
+                    maxSize = maxSize * 2;
+                    lpGroup = (processorGroup*)realloc(lpGroup,maxSize * sizeof(processorGroup));
+                    if (lpGroup == (processorGroup*) EB_NULL) 
+                        return EB_ErrorInsufficientResources; 
+                }
                 lpGroup[socket_id].group[lpGroup[socket_id].num++] = processor_id;
             }
         }
@@ -1171,7 +1178,12 @@ EB_API EB_ERRORTYPE EbInitEncoder(EB_COMPONENTTYPE *h265EncComponent)
         inputData.lcuSize           = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->lcuSize;
         inputData.maxDepth          = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->maxLcuDepth;
         inputData.is16bit           = is16bit;
+        inputData.compressedTenBitFormat = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.compressedTenBitFormat;
+        inputData.tileRowCount = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.tileRowCount;
+        inputData.tileColumnCount = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.tileColumnCount;
 
+        inputData.encMode = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.encMode;
+        inputData.speedControl = (EB_U8)encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.speedControlFlag;
         return_error = EbSystemResourceCtor(
             &(encHandlePtr->pictureControlSetPoolPtrArray[instanceIndex]),
             encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->pictureControlSetPoolInitCountChild, //EB_PictureControlSetPoolInitCountChild,
@@ -1958,6 +1970,14 @@ EB_API EB_ERRORTYPE EbInitHandle(
 {
     EB_ERRORTYPE           return_error = EB_ErrorNone;
 
+    #if  defined(__linux__)
+    if(lpGroup == EB_NULL) {
+        lpGroup = (processorGroup*) malloc(sizeof(processorGroup) * INITIAL_PROCESSOR_GROUP);
+        if (lpGroup == (processorGroup*) EB_NULL)
+            return EB_ErrorInsufficientResources;
+    }
+    #endif
+
     *pHandle = (EB_COMPONENTTYPE*) malloc(sizeof(EB_COMPONENTTYPE));
     if (*pHandle != (EB_HANDLETYPE) NULL) {
 
@@ -2020,6 +2040,13 @@ EB_API EB_ERRORTYPE EbDeinitHandle(
     else {
         return_error = EB_ErrorInvalidComponent;
     }
+
+    #if  defined(__linux__)
+    if(lpGroup != EB_NULL) {
+        free(lpGroup);
+        lpGroup = EB_NULL;
+    }
+    #endif
 
     return return_error;
 }
@@ -4079,25 +4106,25 @@ EB_ERRORTYPE InitH265EncoderHandle(
     EB_ERRORTYPE       return_error            = EB_ErrorNone;
     EB_COMPONENTTYPE  *h265EncComponent        = (EB_COMPONENTTYPE*) hComponent;
 
-    printf("SVT [version]:\tSVT-HEVC Encoder Lib v%d.%d.%d\n", SVT_VERSION_MAJOR, SVT_VERSION_MINOR,SVT_VERSION_PATCHLEVEL);
+    SVT_LOG("SVT [version]:\tSVT-HEVC Encoder Lib v%d.%d.%d\n", SVT_VERSION_MAJOR, SVT_VERSION_MINOR,SVT_VERSION_PATCHLEVEL);
 #ifdef _MSC_VER
 #if _MSC_VER < 1910
-    printf("SVT [build]  : Visual Studio 2013");
+    SVT_LOG("SVT [build]  : Visual Studio 2013");
 #elif (_MSC_VER >= 1910) && (_MSC_VER < 1920)
-    printf("SVT [build]  :\tVisual Studio 2017");
+    SVT_LOG("SVT [build]  :\tVisual Studio 2017");
 #elif (_MSC_VER >= 1920)
-    printf("SVT [build]  :\tVisual Studio 2019");
+    SVT_LOG("SVT [build]  :\tVisual Studio 2019");
 #else
-    printf("SVT [build]  :\tUnknown Visual Studio Version");
+    SVT_LOG("SVT [build]  :\tUnknown Visual Studio Version");
 #endif
 #elif defined(__GNUC__)
-    printf("SVT [build]  :\tGCC %s\t", __VERSION__);
+    SVT_LOG("SVT [build]  :\tGCC %s\t", __VERSION__);
 #else
-    printf("SVT [build]  :\tunknown compiler");
+    SVT_LOG("SVT [build]  :\tunknown compiler");
 #endif
-    printf(" %u bit\n", (unsigned) sizeof(void*) * 8);
-    printf("LIB Build date: %s %s\n",__DATE__,__TIME__);
-    printf("-------------------------------------------\n");
+    SVT_LOG(" %u bit\n", (unsigned) sizeof(void*) * 8);
+    SVT_LOG("LIB Build date: %s %s\n",__DATE__,__TIME__);
+    SVT_LOG("-------------------------------------------\n");
 
     // Set Component Size & Version
     h265EncComponent->nSize                     = sizeof(EB_COMPONENTTYPE);

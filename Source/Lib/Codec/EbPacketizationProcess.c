@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "EbDefinitions.h"
+#include "EbUtility.h"
 #include "EbPacketizationProcess.h"
 #include "EbEntropyCodingResults.h"
 
@@ -16,10 +17,9 @@
 #include "EbEntropyCoding.h"
 #include "EbRateControlTasks.h"
 #include "EbRateControlProcess.h"
-#include "EbTime.h"
 #include "EbPictureDemuxResults.h"
 
-void HrdFullness(SequenceControlSet_t *sequenceControlSetPtr, PictureControlSet_t *pictureControlSetPtr, AppBufferingPeriodSei_t *seiBP)
+static void HrdFullness(SequenceControlSet_t *sequenceControlSetPtr, PictureControlSet_t *pictureControlSetPtr, AppBufferingPeriodSei_t *seiBP)
 {
     EB_U32 i;
     const AppVideoUsabilityInfo_t* vui = sequenceControlSetPtr->videoUsabilityInfoPtr;
@@ -60,7 +60,7 @@ static inline EB_S32 calcLength(EB_U32 x)
     return z + lut[x];
 }
 
-void InitHRD(SequenceControlSet_t *scsPtr)
+static void InitHRD(SequenceControlSet_t *scsPtr)
 {
     EB_U32 i, j, k;
     AppHrdParameters_t *hrd = scsPtr->videoUsabilityInfoPtr->hrdParametersPtr;
@@ -185,6 +185,8 @@ void* PacketizationKernel(void *inputPtr)
         queueEntryPtr    = encodeContextPtr->packetizationReorderQueue[queueEntryIndex];
         queueEntryPtr->startTimeSeconds = pictureControlSetPtr->ParentPcsPtr->startTimeSeconds;
         queueEntryPtr->startTimeuSeconds = pictureControlSetPtr->ParentPcsPtr->startTimeuSeconds;
+        queueEntryPtr->isUsedAsReferenceFlag = pictureControlSetPtr->ParentPcsPtr->isUsedAsReferenceFlag;
+        queueEntryPtr->sliceType = pictureControlSetPtr->sliceType;
 
         //TODO: buffer should be big enough to avoid a deadlock here. Add an assert that make the warning       
         // Get Output Bitstream buffer
@@ -809,11 +811,13 @@ void* PacketizationKernel(void *inputPtr)
                 finishTimeSeconds,
                 finishTimeuSeconds,
                 &latency);
-            //printf("POC %d, PAK out, dts %d, Packetization latency %3.3f\n", outputStreamPtr->pts, outputStreamPtr->dts, latency);
 #if LATENCY_PROFILE
-            SVT_LOG("POC %lld PAK OUT, latency %3.3f\n", outputStreamPtr->pts, latency);
+            SVT_LOG("POC %lu (decoder order %lu) PAK OUT, slice type %d, used as reference %d, latency %3.3f\n",
+                    outputStreamPtr->pts,
+                    queueEntryPtr->pictureNumber, queueEntryPtr->sliceType,
+                    queueEntryPtr->isUsedAsReferenceFlag,
+                    latency);
 #endif
-
             outputStreamPtr->nTickCount = (EB_U32)latency;
             if (sequenceControlSetPtr->staticConfig.pictureTimingSEI) {
                 if (sequenceControlSetPtr->staticConfig.hrdFlag == 1)
@@ -898,7 +902,7 @@ void* PacketizationKernel(void *inputPtr)
                         for (EB_U32 i = 0; i < fillerBytes; i++)
                         {
                             ResetBitstream(queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
-                            OutputBitstreamWrite(queueEntryPtr->bitStreamPtr2->outputBitstreamPtr, 0xff, 8);
+                            OutputBitstreamWrite((OutputBitstreamUnit_t*)queueEntryPtr->bitStreamPtr2->outputBitstreamPtr, 0xff, 8);
                             FlushBitstream(
                                 queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
                             CopyRbspBitstreamToPayload(
@@ -911,7 +915,7 @@ void* PacketizationKernel(void *inputPtr)
                         ResetBitstream(queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
                         // Byte Align the Bitstream: rbsp_trailing_bits
                         OutputBitstreamWrite(
-                            queueEntryPtr->bitStreamPtr2->outputBitstreamPtr,
+                            (OutputBitstreamUnit_t*)queueEntryPtr->bitStreamPtr2->outputBitstreamPtr,
                             1,
                             1);
                         FlushBitstream(
@@ -924,7 +928,7 @@ void* PacketizationKernel(void *inputPtr)
                             encodeContextPtr, NAL_UNIT_INVALID);
                         ResetBitstream(queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
                         OutputBitstreamWriteAlignZero(
-                            queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
+                            (OutputBitstreamUnit_t*)queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
                         FlushBitstream(
                             queueEntryPtr->bitStreamPtr2->outputBitstreamPtr);
                         CopyRbspBitstreamToPayload(

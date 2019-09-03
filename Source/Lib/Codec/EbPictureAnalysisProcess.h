@@ -10,6 +10,9 @@
 #include "EbSystemResourceManager.h"
 #include "EbNoiseExtractAVX2.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**************************************
  * Context
@@ -52,6 +55,7 @@ typedef void(*EB_WEAKLUMAFILTER_TYPE)(
 	EB_U32                       lcuOriginY,
 	EB_U32						 lcuOriginX
 	);
+
 static EB_WEAKLUMAFILTER_TYPE FUNC_TABLE WeakLumaFilter_funcPtrArray[EB_ASM_TYPE_TOTAL] =
 {
 	// C_DEFAULT
@@ -140,5 +144,7 @@ static EB_WEAKCHROMAFILTER_TYPE FUNC_TABLE WeakChromaFilter_funcPtrArray[EB_ASM_
 
 };
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif // EbPictureAnalysis_h
