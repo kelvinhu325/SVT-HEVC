@@ -1158,6 +1158,8 @@ EB_API EB_ERRORTYPE EbInitEncoder(EB_COMPONENTTYPE *h265EncComponent)
 
         inputData.encDecSegmentCol = 0;
         inputData.encDecSegmentRow = 0;
+        inputData.tileGroupCol = 0;
+        inputData.tileGroupRow = 0;
         for(i=0; i <= encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->staticConfig.hierarchicalLevels; ++i) {
             inputData.encDecSegmentCol = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->encDecSegmentColCountArray[i] > inputData.encDecSegmentCol ?
                 (EB_U16) encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->encDecSegmentColCountArray[i] :
@@ -1165,6 +1167,12 @@ EB_API EB_ERRORTYPE EbInitEncoder(EB_COMPONENTTYPE *h265EncComponent)
             inputData.encDecSegmentRow = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->encDecSegmentRowCountArray[i] > inputData.encDecSegmentRow ?
                 (EB_U16) encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->encDecSegmentRowCountArray[i] :
                 inputData.encDecSegmentRow;
+            inputData.tileGroupCol= encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->tileGroupColCountArray[i] > inputData.tileGroupCol ?
+                (EB_U16) encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->tileGroupColCountArray[i] :
+                inputData.tileGroupCol;
+            inputData.tileGroupRow = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->tileGroupRowCountArray[i] > inputData.tileGroupRow ?
+                (EB_U16) encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->tileGroupRowCountArray[i] :
+                inputData.tileGroupRow;
         }
 
         inputData.pictureWidth      = encHandlePtr->sequenceControlSetInstanceArray[instanceIndex]->sequenceControlSetPtr->maxInputLumaWidth;
@@ -2090,13 +2098,21 @@ void LoadDefaultBufferConfigurationSettings(
     EB_U32 meSegH = (((sequenceControlSetPtr->maxInputLumaHeight + 32) / MAX_LCU_SIZE) < 6) ? 1 : 6;
     EB_U32 meSegW = (((sequenceControlSetPtr->maxInputLumaWidth + 32) / MAX_LCU_SIZE) < 10) ? 1 : 10;
 
+    EB_U16 tileColCount = sequenceControlSetPtr->staticConfig.tileColumnCount;
+    EB_U16 tileRowCount = sequenceControlSetPtr->staticConfig.tileRowCount;
+
     EB_U32 inputPic = SetParentPcs(&sequenceControlSetPtr->staticConfig);
 
     unsigned int lpCount = GetNumProcessors();
     unsigned int coreCount = lpCount;
+
+    unsigned int totalThreadCount;
+    unsigned int threadUnit;
+
 #if defined(_WIN32) || defined(__linux__)
     if (sequenceControlSetPtr->staticConfig.targetSocket != -1)
         coreCount /= numGroups;
+
     if (sequenceControlSetPtr->staticConfig.logicalProcessors != 0)
         coreCount = sequenceControlSetPtr->staticConfig.logicalProcessors < coreCount ?
             sequenceControlSetPtr->staticConfig.logicalProcessors: coreCount;
@@ -2115,6 +2131,23 @@ void LoadDefaultBufferConfigurationSettings(
         sequenceControlSetPtr->staticConfig.logicalProcessors > lpCount / numGroups)
         coreCount = lpCount;
 #endif
+
+    // Thread count computation
+    if (sequenceControlSetPtr->staticConfig.threadCount != 0)
+        totalThreadCount = sequenceControlSetPtr->staticConfig.threadCount;
+    else
+        totalThreadCount = coreCount * EB_THREAD_COUNT_FACTOR;
+
+    if (totalThreadCount < EB_THREAD_COUNT_MIN_CORE * EB_THREAD_COUNT_FACTOR) {
+        coreCount = EB_THREAD_COUNT_MIN_CORE;
+        totalThreadCount = coreCount * EB_THREAD_COUNT_FACTOR;
+    }
+
+    if (totalThreadCount % EB_THREAD_COUNT_MIN_CORE) {
+        totalThreadCount = (totalThreadCount + EB_THREAD_COUNT_MIN_CORE - 1)
+                           / EB_THREAD_COUNT_MIN_CORE * EB_THREAD_COUNT_MIN_CORE;
+    }
+    threadUnit = totalThreadCount / EB_THREAD_COUNT_MIN_CORE;
 
     sequenceControlSetPtr->inputOutputBufferFifoInitCount = inputPic + SCD_LAD;
 
@@ -2148,6 +2181,26 @@ void LoadDefaultBufferConfigurationSettings(
     sequenceControlSetPtr->encDecSegmentColCountArray[4] = encDecSegW;
     sequenceControlSetPtr->encDecSegmentColCountArray[5] = encDecSegW;
 
+    // Jing: TODO:
+    // Tune it later, different layer may have different Tile Group
+    EB_U16 tileGroupColCount = 1;//1 col will have better perf for segments
+    EB_U16 tileGroupRowCount = tileRowCount;// > 1 ? (tileRowCount / 2) : 1;
+
+    // Tile group
+    sequenceControlSetPtr->tileGroupColCountArray[0] = tileGroupColCount;
+    sequenceControlSetPtr->tileGroupColCountArray[1] = tileGroupColCount;
+    sequenceControlSetPtr->tileGroupColCountArray[2] = tileGroupColCount;
+    sequenceControlSetPtr->tileGroupColCountArray[3] = tileGroupColCount;
+    sequenceControlSetPtr->tileGroupColCountArray[4] = tileGroupColCount;
+    sequenceControlSetPtr->tileGroupColCountArray[5] = tileGroupColCount;
+
+    sequenceControlSetPtr->tileGroupRowCountArray[0] = tileGroupRowCount;
+    sequenceControlSetPtr->tileGroupRowCountArray[1] = tileGroupRowCount;
+    sequenceControlSetPtr->tileGroupRowCountArray[2] = tileGroupRowCount;
+    sequenceControlSetPtr->tileGroupRowCountArray[3] = tileGroupRowCount;
+    sequenceControlSetPtr->tileGroupRowCountArray[4] = tileGroupRowCount;
+    sequenceControlSetPtr->tileGroupRowCountArray[5] = tileGroupRowCount;
+
     //#====================== Data Structures and Picture Buffers ======================
     sequenceControlSetPtr->pictureControlSetPoolInitCount       = inputPic;
     sequenceControlSetPtr->pictureControlSetPoolInitCountChild  = MAX(4, coreCount / 6);
@@ -2171,14 +2224,15 @@ void LoadDefaultBufferConfigurationSettings(
 
     //#====================== Processes number ======================
     sequenceControlSetPtr->totalProcessInitCount = 0;
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->pictureAnalysisProcessInitCount              = MAX(15, coreCount / 6);
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->motionEstimationProcessInitCount             = MAX(20, coreCount / 3);
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->sourceBasedOperationsProcessInitCount        = MAX(3, coreCount / 12);
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->modeDecisionConfigurationProcessInitCount    = MAX(3, coreCount / 12);
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->encDecProcessInitCount                       = MAX(40, coreCount);
-    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->entropyCodingProcessInitCount                = MAX(3, coreCount / 6);
-
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->pictureAnalysisProcessInitCount           = threadUnit * 4;
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->motionEstimationProcessInitCount          = threadUnit * 8;
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->sourceBasedOperationsProcessInitCount     = threadUnit * 2;
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->modeDecisionConfigurationProcessInitCount = threadUnit * 2;
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->entropyCodingProcessInitCount             = threadUnit * 4;
     sequenceControlSetPtr->totalProcessInitCount += 6; // single processes count
+    sequenceControlSetPtr->totalProcessInitCount += sequenceControlSetPtr->encDecProcessInitCount =
+                                                    totalThreadCount - sequenceControlSetPtr->totalProcessInitCount;
+
     SVT_LOG("Number of logical cores available: %u\nNumber of PPCS %u\n", coreCount, inputPic);
 
     return;
@@ -3207,10 +3261,10 @@ EB_ERRORTYPE EbH265EncInitParameter(
     // ASM Type
     configPtr->asmType = 1;
 
-
     // Channel info
     configPtr->logicalProcessors = 0;
     configPtr->targetSocket = -1;
+    configPtr->threadCount = 0;
     configPtr->channelId = 0;
     configPtr->activeChannelCount   = 1;
 
